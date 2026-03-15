@@ -19,6 +19,7 @@ pom.xml.asc
 .lsp/
 .calva/
 .clj-kondo/.cache/
+.clj-kondo/imports/
 
 # IDE/Editor
 .vscode/
