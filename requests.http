@@ -1,0 +1,63 @@
+POST http://localhost:3000/authorizations
+Content-Type: application/json
+Idempotency-Key: 31734aa8-1eb7-44f7-9e89-11a02f92ad29
+
+{
+    "id": "3fd455a5-e78f-4951-a5c9-254c4cd394ef",
+    "transaction": {
+        "amount": 1500.90,
+        "currency": "BRL",
+        "installments": 12,
+        "timestamp": "2026-03-14T12:12:12.300-03:00"
+    },
+    "env": {
+        "merchant": {
+            "id": "MERC-001",
+            "nm": "Lojas Mel"
+        },
+        "terminal": {
+            "id": "c736ab68-87f9-4a80-9ded-043324950b59",
+            "type": "POSP",
+            "location": {
+                "name": "Loja 12",
+                "geo": {
+                    "lat": -23.5505,
+                    "long": -46.6333
+                }
+            },
+            "hardware": {
+                "mfr": "Ingenico",
+                "mdl": "move/5000",
+                "srlNb": "123123ABC"
+            }
+        },
+        "card": {
+            "token": "9876543210987654",
+            "pan": "4111********1111",
+            "exp": "2032-04",
+            "type": "CREDIT"
+        }
+    },
+    "context": {
+        "payment": {
+            "attndncInd": "UATD",
+            "cardPres": false,
+            "crdhldrPres": true,
+            "txChanl": "INTV",
+            "entryMode": "KBDD",
+            "ipAddr": "189.121.45.210"
+        },
+        "sale": {
+            "id": "099dcc8d-dbcf-439b-94d5-5667b21d882c",
+            "ctgyCd": "5411"
+        }
+    }
+}
+
+###
+
+GET http://localhost:3000/db-test
+
+###
+
+GET http://localhost:3000/hello

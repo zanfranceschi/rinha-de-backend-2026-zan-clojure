@@ -1,0 +1,40 @@
+/target
+/classes
+/checkouts
+profiles.clj
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+/.prepl-port
+.hgignore
+.hg/
+
+# Clojure/Leiningen
+.cpcache/
+.rebel_readline_history
+.socket-repl-port
+.lsp/
+.calva/
+.clj-kondo/.cache/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.iml
+.metals/
+.bsp/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+
+# Environment
+.env
+
+# Logs
+*.log
+logs/
