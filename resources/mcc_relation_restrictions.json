@@ -1,0 +1,204 @@
+[
+    {
+        "mcc": "7802",
+        "description": "Government-Licensed Horse/Dog Racing",
+        "related": [
+            {"mcc": "7995", "description": "Betting (Lottery, Casino Gaming Chips, Off-Track, Wagers)"},
+            {"mcc": "7801", "description": "Government-Licensed Online Casinos"},
+            {"mcc": "5813", "description": "Drinking Places, Bars, Nightclubs"}
+        ]
+    },
+    {
+        "mcc": "7801",
+        "description": "Government-Licensed Online Casinos",
+        "related": [
+            {"mcc": "7995", "description": "Betting (Lottery, Casino Gaming Chips, Off-Track, Wagers)"},
+            {"mcc": "7802", "description": "Government-Licensed Horse/Dog Racing"}
+        ]
+    },
+    {
+        "mcc": "7995",
+        "description": "Betting (Lottery, Casino Gaming Chips, Off-Track, Wagers)",
+        "related": [
+            {"mcc": "7801", "description": "Government-Licensed Online Casinos"},
+            {"mcc": "7802", "description": "Government-Licensed Horse/Dog Racing"},
+            {"mcc": "5813", "description": "Drinking Places, Bars, Nightclubs"}
+        ]
+    },
+    {
+        "mcc": "5541",
+        "description": "Service Stations (Gas Stations)",
+        "related": [
+            {"mcc": "5411", "description": "Grocery Stores, Supermarkets"},
+            {"mcc": "5499", "description": "Convenience Stores and Specialty Markets"},
+            {"mcc": "5542", "description": "Automated Fuel Dispensers"}
+        ]
+    },
+    {
+        "mcc": "5542",
+        "description": "Automated Fuel Dispensers",
+        "related": [
+            {"mcc": "5541", "description": "Service Stations (Gas Stations)"},
+            {"mcc": "5499", "description": "Convenience Stores and Specialty Markets"}
+        ]
+    },
+    {
+        "mcc": "5411",
+        "description": "Grocery Stores, Supermarkets",
+        "related": [
+            {"mcc": "5499", "description": "Convenience Stores and Specialty Markets"},
+            {"mcc": "5912", "description": "Drug Stores and Pharmacies"},
+            {"mcc": "5992", "description": "Florists"},
+            {"mcc": "5921", "description": "Package Stores – Beer, Wine, and Liquor"}
+        ]
+    },
+    {
+        "mcc": "5812",
+        "description": "Eating Places and Restaurants",
+        "related": [
+            {"mcc": "5814", "description": "Fast Food Restaurants"},
+            {"mcc": "5813", "description": "Drinking Places, Bars, Nightclubs"}
+        ]
+    },
+    {
+        "mcc": "5814",
+        "description": "Fast Food Restaurants",
+        "related": [
+            {"mcc": "5812", "description": "Eating Places and Restaurants"},
+            {"mcc": "5499", "description": "Convenience Stores and Specialty Markets"}
+        ]
+    },
+    {
+        "mcc": "5813",
+        "description": "Drinking Places, Bars, Nightclubs",
+        "related": [
+            {"mcc": "5812", "description": "Eating Places and Restaurants"},
+            {"mcc": "7995", "description": "Betting (Lottery, Casino Gaming Chips, Off-Track, Wagers)"},
+            {"mcc": "7802", "description": "Government-Licensed Horse/Dog Racing"}
+        ]
+    },
+    {
+        "mcc": "4511",
+        "description": "Airlines, Air Carriers",
+        "related": [
+            {"mcc": "4722", "description": "Travel Agencies and Tour Operators"},
+            {"mcc": "7011", "description": "Hotels, Motels, and Resorts"},
+            {"mcc": "7512", "description": "Car Rental Agencies"}
+        ]
+    },
+    {
+        "mcc": "4722",
+        "description": "Travel Agencies and Tour Operators",
+        "related": [
+            {"mcc": "4511", "description": "Airlines, Air Carriers"},
+            {"mcc": "7011", "description": "Hotels, Motels, and Resorts"},
+            {"mcc": "7512", "description": "Car Rental Agencies"},
+            {"mcc": "4411", "description": "Cruise and Steamship Lines"}
+        ]
+    },
+    {
+        "mcc": "7011",
+        "description": "Hotels, Motels, and Resorts",
+        "related": [
+            {"mcc": "4511", "description": "Airlines, Air Carriers"},
+            {"mcc": "7512", "description": "Car Rental Agencies"},
+            {"mcc": "4722", "description": "Travel Agencies and Tour Operators"},
+            {"mcc": "5812", "description": "Eating Places and Restaurants"}
+        ]
+    },
+    {
+        "mcc": "7512",
+        "description": "Car Rental Agencies",
+        "related": [
+            {"mcc": "4511", "description": "Airlines, Air Carriers"},
+            {"mcc": "7011", "description": "Hotels, Motels, and Resorts"},
+            {"mcc": "5541", "description": "Service Stations (Gas Stations)"},
+            {"mcc": "5542", "description": "Automated Fuel Dispensers"}
+        ]
+    },
+    {
+        "mcc": "5912",
+        "description": "Drug Stores and Pharmacies",
+        "related": [
+            {"mcc": "8011", "description": "Doctors and Physicians"},
+            {"mcc": "8062", "description": "Hospitals"},
+            {"mcc": "5411", "description": "Grocery Stores, Supermarkets"}
+        ]
+    },
+    {
+        "mcc": "8011",
+        "description": "Doctors and Physicians",
+        "related": [
+            {"mcc": "5912", "description": "Drug Stores and Pharmacies"},
+            {"mcc": "8062", "description": "Hospitals"},
+            {"mcc": "8021", "description": "Dentists and Orthodontists"},
+            {"mcc": "8042", "description": "Optometrists and Ophthalmologists"},
+            {"mcc": "8099", "description": "Medical Services and Health Practitioners"}
+        ]
+    },
+    {
+        "mcc": "8062",
+        "description": "Hospitals",
+        "related": [
+            {"mcc": "8011", "description": "Doctors and Physicians"},
+            {"mcc": "5912", "description": "Drug Stores and Pharmacies"},
+            {"mcc": "8099", "description": "Medical Services and Health Practitioners"}
+        ]
+    },
+    {
+        "mcc": "5732",
+        "description": "Electronics Stores",
+        "related": [
+            {"mcc": "5045", "description": "Computers, Peripherals, and Software"},
+            {"mcc": "5065", "description": "Electrical Parts and Equipment"},
+            {"mcc": "4812", "description": "Telecommunications Equipment and Telephone Sales"}
+        ]
+    },
+    {
+        "mcc": "5944",
+        "description": "Jewelry Stores, Watches, Clocks, and Silverware",
+        "related": [
+            {"mcc": "5094", "description": "Precious Stones and Metals, Watches and Jewelry"},
+            {"mcc": "5947", "description": "Gift, Card, Novelty, and Souvenir Shops"}
+        ]
+    },
+    {
+        "mcc": "5094",
+        "description": "Precious Stones and Metals, Watches and Jewelry (wholesale)",
+        "related": [
+            {"mcc": "5944", "description": "Jewelry Stores, Watches, Clocks, and Silverware"}
+        ]
+    },
+    {
+        "mcc": "5712",
+        "description": "Furniture, Home Furnishings, and Equipment Stores",
+        "related": [
+            {"mcc": "5713", "description": "Floor Covering Stores"},
+            {"mcc": "5311", "description": "Department Stores"}
+        ]
+    },
+    {
+        "mcc": "7230",
+        "description": "Barber and Beauty Shops",
+        "related": [
+            {"mcc": "7298", "description": "Health and Beauty Spas"},
+            {"mcc": "5912", "description": "Drug Stores and Pharmacies"}
+        ]
+    },
+    {
+        "mcc": "7832",
+        "description": "Motion Picture Theaters",
+        "related": [
+            {"mcc": "5814", "description": "Fast Food Restaurants"},
+            {"mcc": "7922", "description": "Theatrical Ticket Agencies"}
+        ]
+    },
+    {
+        "mcc": "5992",
+        "description": "Florists",
+        "related": [
+            {"mcc": "5193", "description": "Florists Supplies, Nursery Stock, and Flowers"},
+            {"mcc": "5947", "description": "Gift, Card, Novelty, and Souvenir Shops"}
+        ]
+    }
+]

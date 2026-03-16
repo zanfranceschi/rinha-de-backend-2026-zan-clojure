@@ -12,12 +12,12 @@
 (defn haversine-km-distance
   "Calculates the great-circle distance (in km) between two points
    given their latitude and longitude in degrees."
-  ^double [{^double lat1 :lat ^double long1 :long}
-           {^double lat2 :lat ^double long2 :long}]
+  ^double [{^double lat1 :lat ^double lon1 :lon}
+           {^double lat2 :lat ^double lon2 :lon}]
   (let [R      6371 ; Earth's radius in km
         to-rad #(Math/toRadians %)
         dlat   (to-rad (- lat2 lat1))
-        dlon   (to-rad (- long2 long1))
+        dlon   (to-rad (- lon2 lon1))
         lat1   (to-rad lat1)
         lat2   (to-rad lat2)
         a      (+ (* (Math/sin (/ dlat 2)) (Math/sin (/ dlat 2)))
@@ -30,12 +30,12 @@
   "Calculates approximate distance (in km) between two points
    using the Equirectangular approximation. Fast but less accurate
    for long distances."
-  ^double [{^double lat1 :lat ^double long1 :long}
-           {^double lat2 :lat ^double long2 :long}]
+  ^double [{^double lat1 :lat ^double lon1 :lon}
+           {^double lat2 :lat ^double lon2 :lon}]
   (let [R 6371.0
         lat1 (Math/toRadians lat1)
         lat2 (Math/toRadians lat2)
-        dlon (Math/toRadians (- long2 long1))
+        dlon (Math/toRadians (- lon2 lon1))
         dlat (- lat2 lat1)
         x    (* dlon (Math/cos (/ (+ lat1 lat2) 2.0)))
         y    dlat]
