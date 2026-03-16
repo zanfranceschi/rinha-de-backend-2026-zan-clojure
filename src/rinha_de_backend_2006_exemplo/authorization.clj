@@ -51,28 +51,10 @@
               domain
               (some #{domain} restricted-domains)))))
 
-(defn point-in-polygon?
-  "Checks if a point [lon lat] is inside a polygon (vector of [lon lat] vertices).
-   Uses the ray casting algorithm."
-  [[lon lat] polygon]
-  (let [n (count polygon)]
-    (loop [i 0
-           j (dec n)
-           inside? false]
-      (if (< i n)
-        (let [[xi yi] (nth polygon i)
-              [xj yj] (nth polygon j)
-              intersect? (and (or (and (> yi lat) (<= yj lat))
-                                  (and (> yj lat) (<= yi lat)))
-                              (< lon (+ xj (* (/ (- lat yj) (- yi yj))
-                                              (- xi xj)))))]
-          (recur (inc i) i (if intersect? (not inside?) inside?)))
-        inside?))))
-
 (defn in-restricted-area? [authorization-request restricted-areas]
   (let [{:keys [lat lon]}
         (-> authorization-request :environment :terminal)]
-    (boolean (and lat lon (some #(point-in-polygon? [lon lat] %) restricted-areas)))))
+    (boolean (and lat lon (some #(misc/point-in-polygon? [lon lat] %) restricted-areas)))))
 
 (defn annomalous-distance-time? [auth-request]
   (if (and (= (-> auth-request :environment :type) :onsite)
@@ -266,6 +248,7 @@
 
 (comment
   "testes"
+  
   (annomalous-distance-time? transaction-request)
   (annomalous-interval? transaction-request)
   (mcc-restricted? transaction-request mccs-restrictions)
@@ -273,4 +256,5 @@
   (from-restricted-ip? transaction-request restricted-ip-ranges)
   (from-restricted-domain? transaction-request restricted-domains)
   (in-restricted-area? transaction-request restricted-areas-list)
-  )
+)
+

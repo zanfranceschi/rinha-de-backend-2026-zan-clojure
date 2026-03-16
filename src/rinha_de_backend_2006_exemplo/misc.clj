@@ -1,7 +1,5 @@
 (ns rinha-de-backend-2006-exemplo.misc
-  (:require [clojure.string]
-            [clojure.java.io :as io]
-            [clojure.data.csv :as csv])
+  (:require [clojure.string])
   (:import [org.apache.commons.net.util SubnetUtils]))
 
 (defn in-cidr? [cidr ip]
@@ -12,8 +10,10 @@
 (defn haversine-km-distance
   "Calculates the great-circle distance (in km) between two points
    given their latitude and longitude in degrees."
-  ^double [{^double lat1 :lat ^double lon1 :lon}
-           {^double lat2 :lat ^double lon2 :lon}]
+  ^double [{^double lat1 :lat
+            ^double lon1 :lon}
+           {^double lat2 :lat
+            ^double lon2 :lon}]
   (let [R      6371 ; Earth's radius in km
         to-rad #(Math/toRadians %)
         dlat   (to-rad (- lat2 lat1))
@@ -30,9 +30,11 @@
   "Calculates approximate distance (in km) between two points
    using the Equirectangular approximation. Fast but less accurate
    for long distances."
-  ^double [{^double lat1 :lat ^double lon1 :lon}
-           {^double lat2 :lat ^double lon2 :lon}]
-  (let [R 6371.0
+  ^double [{^double lat1 :lat
+            ^double lon1 :lon}
+           {^double lat2 :lat
+            ^double lon2 :lon}]
+  (let [R    6371.0
         lat1 (Math/toRadians lat1)
         lat2 (Math/toRadians lat2)
         dlon (Math/toRadians (- lon2 lon1))
@@ -41,11 +43,20 @@
         y    dlat]
     (* R (Math/sqrt (+ (* x x) (* y y))))))
 
-(defn load-mcc-codes
-  "Loads MCC codes from resources/mcc_codes.csv into a vector of maps
-   with keyword keys (e.g. :mcc, :edited_description, etc.)."
-  []
-  (with-open [rdr (io/reader (io/resource "mcc_codes.csv"))]
-    (let [[header & rows] (csv/read-csv rdr)
-          ks (mapv #(keyword (clojure.string/replace % #"[^\w]" "_")) header)]
-      (mapv #(zipmap ks %) rows))))
+(defn point-in-polygon?
+  "Checks if a point [lon lat] is inside a polygon (vector of [lon lat] vertices).
+   Uses the ray casting algorithm."
+  [[lon lat] polygon]
+  (let [n (count polygon)]
+    (loop [i       0
+           j       (dec n)
+           inside? false]
+      (if (< i n)
+        (let [[xi yi]    (nth polygon i)
+              [xj yj]    (nth polygon j)
+              intersect? (and (or (and (> yi lat) (<= yj lat))
+                                  (and (> yj lat) (<= yi lat)))
+                              (< lon (+ xj (* (/ (- lat yj) (- yi yj))
+                                              (- xi xj)))))]
+          (recur (inc i) i (if intersect? (not inside?) inside?)))
+        inside?))))
