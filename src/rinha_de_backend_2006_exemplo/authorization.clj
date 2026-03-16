@@ -183,21 +183,20 @@
                                               :amount                101.0
                                               :currency              :brl
                                               :number-of-intallments 12}
-                          :environment       {:type                                                  :onsite
-                                              :card                                                  {:id                                     "240cb527-92ea-4451-9884-94784bad072a"
-                                                                                                      :type :credit}
-                                              :merchant                                              {:id                                    "3e106a59-ee63-45b0-a8b9-3416d95ee485"
-                                                                                                      :mcc "7801"}
-                                              :domain                                                "win-big-tonight.net"
-                                              :card-present                                          true
-                                              :card-holder-present                                   true
-                                              :terminal                                              nil
-                                              {:id            "b2395638-fdcf-44ad-bcd1-a27968b84a16"
-                                               :manufacturer  "Ingenico"
-                                               :model         "move/5000"
-                                               :serial-number "123123ABC"
-                                               :lat           -23.5505
-                                               :lon           -46.6333}}
+                          :environment       {:type                :onsite
+                                              :card                {:id "240cb527-92ea-4451-9884-94784bad072a"
+                                                                    :type                                 :credit}
+                                              :merchant            {:id "3e106a59-ee63-45b0-a8b9-3416d95ee485"
+                                                                    :mcc                                  "7801"}
+                                              :domain              "win-big-tonight.net"
+                                              :card-present        true
+                                              :card-holder-present true
+                                              :terminal            {:id "b2395638-fdcf-44ad-bcd1-a27968b84a16"
+                                                                    :manufacturer                          "Ingenico"
+                                                                    :model                                 "move/5000"
+                                                                    :serial-number                         "123123ABC"
+                                                                    :lat                                   -23.5505
+                                                                    :lon                                   -46.6333}}
                           :context           {:sale-mcc   "5813"
                                               :payment-ip "192.168.0.10"}
                           :last-transactions [{:id             "f93b819c-8e23-44b8-b032-5224763656fd"
