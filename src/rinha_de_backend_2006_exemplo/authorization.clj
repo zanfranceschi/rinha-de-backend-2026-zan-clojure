@@ -4,8 +4,7 @@
             [clojure.string]
             [rinha-de-backend-2006-exemplo.misc :as misc]
             [taoensso.telemere :as tel])
-  (:import
-   [java.time Duration Instant]))
+  (:import [java.time Duration Instant]))
 
 ;; https://gemini.google.com/share/f83641d179d9
 ;; too short purchase request intervals for the same card
