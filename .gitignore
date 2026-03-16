@@ -22,7 +22,6 @@ pom.xml.asc
 .clj-kondo/imports/
 
 # IDE/Editor
-.vscode/
 .idea/
 *.iml
 .metals/
