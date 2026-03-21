@@ -13,7 +13,6 @@
   (GET "/hello" [] {:status 200
                     :body {:message "hello"}})
  
-
   (POST "/test" request
     {:status 200
      :body {:msg (-> request :body :msg)}})
@@ -37,8 +36,9 @@
 (defn -main [& _args]
   (let [port    (Integer/parseInt (or (@env :port) "3000"))
         dev?    (= "development" (@env :env))
-        handler (cond-> #'app
-                  dev? wrap-reload)
+        handler (if dev?
+                  (wrap-reload #'app)
+                  app)
         server  (jetty/run-jetty handler {:port  port
                                           :join? false})]
     (.addShutdownHook (Runtime/getRuntime)
