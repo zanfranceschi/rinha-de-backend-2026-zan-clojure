@@ -14,6 +14,7 @@
                  [compojure "1.7.2"]
                  [envvar "1.1.2"]
                  [commons-net "3.12.0"]
+                 [org.locationtech.jts/jts-core "1.20.0"]
                  [org.clojure/data.csv "1.1.1"]
                  [com.taoensso/telemere "1.2.1"]
                  [org.clojure/data.json "2.5.2"]]
