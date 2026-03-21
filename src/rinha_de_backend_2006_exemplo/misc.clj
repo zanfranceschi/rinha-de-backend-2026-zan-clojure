@@ -1,11 +1,5 @@
 (ns rinha-de-backend-2006-exemplo.misc
-  (:require [clojure.string])
-  (:import [org.apache.commons.net.util SubnetUtils]))
-
-(defn in-cidr? [cidr ip]
-  (let [subnet (SubnetUtils. cidr)]
-    (.setInclusiveHostCount subnet true)
-    (-> subnet .getInfo (.isInRange ip))))
+  (:require [clojure.string]))
 
 (defn haversine-km-distance
   "Calculates the great-circle distance (in km) between two points
