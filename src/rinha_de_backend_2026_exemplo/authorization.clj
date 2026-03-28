@@ -22,44 +22,36 @@
    (slurp (io/resource "mcc_relation_restrictions.json")) :key-fn keyword))
 
 (defn in-restricted-area? [authorization-request]
-  (let [{:keys [lat lon]}
+  (let [{:keys [latitude longitude]}
         (-> authorization-request :environment :terminal)]
-    (boolean (and lat lon (some #(geo/point-in-polygon? [lon lat] %) restricted-areas-list)))))
+    (boolean (and latitude longitude (some #(geo/point-in-polygon? [longitude latitude] %) restricted-areas-list)))))
 
-(defn annomalous-distance-time? [auth-request]
-  (if-let [last-tx (:last-transaction auth-request)]
+(defn anomalous-travel-speed? [auth-request]
+  (if-let [last-tx (:last_transaction auth-request)]
     (let [current-tx-timestamp  (java.time.Instant/parse (-> auth-request :transaction :timestamp))
-          {:keys [lat lon]}     (-> auth-request :environment :terminal)
-          last-tx-terminal      (-> last-tx :environment :terminal)
-          last-tx-lat           (:lat last-tx-terminal)
-          last-tx-lon           (:lon last-tx-terminal)
+          {:keys [latitude longitude]}     (-> auth-request :environment :terminal)
+          last-tx-terminal      (:terminal last-tx)
+          last-tx-lat           (:latitude last-tx-terminal)
+          last-tx-lon           (:longitude last-tx-terminal)
           last-tx-distance-km   (geo/equirectangular-km-distance
-                                 {:lat lat
-                                  :lon lon}
+                                 {:lat latitude
+                                  :lon longitude}
                                  {:lat last-tx-lat
                                   :lon last-tx-lon})
-          last-tx-timestamp     (java.time.Instant/parse (-> last-tx :transaction :timestamp))
+          last-tx-timestamp     (java.time.Instant/parse (:timestamp last-tx))
           last-tx-interval-secs (.toSeconds
                                  (Duration/between
                                   last-tx-timestamp
                                   current-tx-timestamp))
-          distance-thresholds   [{:name      :micro
-                                  :max-km    1
+          distance-thresholds   [{:max-km    10
                                   :max-speed 15}
-                                 {:name      :urban
-                                  :max-km    5
-                                  :max-speed 40}
-                                 {:name      :suburban
-                                  :max-km    50
-                                  :max-speed 100}
-                                 {:name      :regional
-                                  :max-km    300
-                                  :max-speed 140}
-                                 {:name      :domestic-flight
-                                  :max-km    1500
-                                  :max-speed 450}
-                                 {:name      :intercontinental
-                                  :max-km    99999
+                                 {:max-km    50
+                                  :max-speed 60}
+                                 {:max-km    200
+                                  :max-speed 120}
+                                 {:max-km    1000
+                                  :max-speed 350}
+                                 {:max-km    ##Inf
                                   :max-speed 700}]
           speed-kmh             (if (> last-tx-interval-secs 0)
                                   (* (/ last-tx-distance-km last-tx-interval-secs) 3600.0)
@@ -68,10 +60,10 @@
       (boolean (and range (> speed-kmh (:max-speed range)))))
     false))
 
-(defn annomalous-interval? [auth-request]
-  (if-let [last-tx (:last-transaction auth-request)]
+(defn anomalous-interval? [auth-request]
+  (if-let [last-tx (:last_transaction auth-request)]
     (let [current-tx-timestamp  (java.time.Instant/parse (-> auth-request :transaction :timestamp))
-          last-tx-timestamp     (java.time.Instant/parse (-> last-tx :transaction :timestamp))
+          last-tx-timestamp     (java.time.Instant/parse (:timestamp last-tx))
           last-tx-interval-mins (.toMinutes
                                  (Duration/between
                                   last-tx-timestamp
@@ -79,9 +71,9 @@
       (< last-tx-interval-mins 5))
     false))
 
-(defn mcc-restricted? [authorization-request]
+(defn mcc-amount-restricted? [authorization-request]
   (let [tx-amount              (-> authorization-request :transaction :amount)
-        sale-mcc               (-> authorization-request :context :sale-mcc)
+        sale-mcc               (-> authorization-request :context :sale_mcc)
         mcc-restrictions       (->> mccs-restrictions
                                     (filter (fn [restriction]
                                               (= (:mcc restriction) sale-mcc)))
@@ -96,20 +88,29 @@
     (boolean (or max-amount-restricted? min-amount-restricted?))))
 
 (defn mcc-relation-restricted? [authorization-request]
-  (let [sale-mcc                     (-> authorization-request :context :sale-mcc)
+  (let [sale-mcc                     (-> authorization-request :context :sale_mcc)
         merchant-mcc                 (-> authorization-request :environment :merchant :mcc)
         mcc-relation-restriction     (->> mcc-relation-restrictions
                                           (filter (fn [restriction]
                                                     (= (:mcc restriction) merchant-mcc)))
-                                          first)
-        allowed-mccs                 (map :mcc (conj (:related mcc-relation-restriction) merchant-mcc))]
-    (boolean
-     (not
-      (some #{sale-mcc} allowed-mccs)))))
+                                          first)]
+    (if (nil? mcc-relation-restriction)
+      false
+      (let [allowed-mccs (conj (set (map :mcc (:related mcc-relation-restriction))) merchant-mcc)]
+        (boolean
+         (not
+          (some #{sale-mcc} allowed-mccs)))))))
 
 (defn authorize [payload]
-  {:approved (not (or (in-restricted-area? payload)
-                      (annomalous-distance-time? payload)
-                      (annomalous-interval? payload)
-                      (mcc-restricted? payload)
-                      (mcc-relation-restricted? payload)))})
+  (let [rules [["restricted_area"        in-restricted-area?]
+               ["anomalous_travel_speed" anomalous-travel-speed?]
+               ["anomalous_interval"     anomalous-interval?]
+               ["mcc_amount_restriction"  mcc-amount-restricted?]
+               ["mcc_relation_restriction" mcc-relation-restricted?]]
+        violated (into []
+                       (comp (filter (fn [[_ check-fn]] (check-fn payload)))
+                             (map first))
+                       rules)]
+    (if (empty? violated)
+      {:approved true}
+      {:approved false :rules_violated violated})))
