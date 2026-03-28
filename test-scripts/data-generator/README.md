@@ -18,6 +18,6 @@ Seeded generator that produces deterministic authorization request datasets.
 
 ## TODO
 
-- Implement generator script (Babashka or standalone Clojure)
+- Implement generator script with Clojure
 - Define seed for preview dataset
 - Define coverage targets (% of requests per rule, multi-rule violations, clean transactions)
