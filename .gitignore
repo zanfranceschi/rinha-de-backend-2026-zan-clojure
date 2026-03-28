@@ -41,3 +41,4 @@ logs/
 
 # Test data
 test-scripts/data-generator/*.json
+!test-scripts/data-generator/preview-dataset.json
