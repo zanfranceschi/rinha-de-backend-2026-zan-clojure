@@ -328,3 +328,6 @@
   ([dataset path]
    (spit path (json/write-str dataset))
    (println (str "Wrote " (count dataset) " entries to " path))))
+
+(def ds (generate-dataset))
+(write-dataset! ds)
