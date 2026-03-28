@@ -268,3 +268,63 @@
   [^Random rng ^long idx]
   (let [gen-fn (rand-nth-seq rng multi-rule-generators)]
     (gen-fn rng idx)))
+
+;; ---------------------------------------------------------------------------
+;; Dataset generation
+;; ---------------------------------------------------------------------------
+
+(def ^:private scenario-distribution
+  "Distribution of scenarios. Weights determine how many of each ~200 total.
+   Clean ~40%, each single-rule ~10%, multi-rule ~10%."
+  [{:generator gen-clean                    :weight 40}
+   {:generator gen-restricted-area          :weight 10}
+   {:generator gen-anomalous-interval       :weight 10}
+   {:generator gen-anomalous-travel-speed   :weight 10}
+   {:generator gen-mcc-amount-restriction   :weight 10}
+   {:generator gen-mcc-relation-restriction :weight 10}
+   {:generator gen-multi-rule               :weight 10}])
+
+(defn- build-scenario-list
+  "Expands scenario-distribution into a flat list of generator fns
+   proportional to weights, totaling num-requests."
+  [num-requests]
+  (let [total-weight (reduce + (map :weight scenario-distribution))
+        expanded     (mapcat (fn [{:keys [generator weight]}]
+                               (let [n (Math/round (* (/ (double weight) total-weight)
+                                                      num-requests))]
+                                 (repeat n generator)))
+                             scenario-distribution)
+        ;; Adjust to exact count — pad or trim with clean
+        diff         (- num-requests (count expanded))]
+    (cond
+      (pos? diff)  (concat expanded (repeat diff gen-clean))
+      (neg? diff)  (take num-requests expanded)
+      :else        expanded)))
+
+(defn generate-dataset
+  "Generates the full dataset as a vector of {:request ... :expected ...} maps.
+   Uses hardcoded seed 42 for determinism."
+  ([] (generate-dataset default-num-requests))
+  ([num-requests]
+   (let [rng        (Random. seed)
+         scenarios  (vec (build-scenario-list num-requests))
+         ;; Shuffle scenarios using the seeded RNG for variety in ordering
+         shuffled   (let [arr (java.util.ArrayList. scenarios)]
+                      (java.util.Collections/shuffle arr rng)
+                      (vec arr))]
+     (mapv (fn [idx gen-fn]
+             (let [request  (gen-fn rng idx)
+                   expected (auth/authorize request)]
+               {:request  request
+                :expected expected}))
+           (range num-requests)
+           shuffled))))
+
+(def default-output-path "test-scripts/data-generator/preview-dataset.json")
+
+(defn write-dataset!
+  "Writes the dataset to a JSON file. Keywords are converted to strings."
+  ([dataset] (write-dataset! dataset default-output-path))
+  ([dataset path]
+   (spit path (json/write-str dataset))
+   (println (str "Wrote " (count dataset) " entries to " path))))

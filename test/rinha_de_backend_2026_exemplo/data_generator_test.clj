@@ -1,6 +1,7 @@
 (ns rinha-de-backend-2026-exemplo.data-generator-test
   (:require
    [clojure.test :refer [deftest is testing]]
+   [clojure.data.json :as json]
    [rinha-de-backend-2026-exemplo.data-generator :as gen]
    [rinha-de-backend-2026-exemplo.authorization :as auth]))
 
@@ -91,3 +92,41 @@
           result  (auth/authorize payload)]
       (is (false? (:approved result)))
       (is (>= (count (:rules_violated result)) 2)))))
+
+(deftest generate-dataset-test
+  (testing "generate-dataset returns a vector of ~200 entries with :request and :expected"
+    (let [dataset (gen/generate-dataset)]
+      (is (vector? dataset))
+      (is (= gen/default-num-requests (count dataset)))
+      (doseq [entry dataset]
+        (is (map? (:request entry)))
+        (is (map? (:expected entry)))
+        (is (contains? (:expected entry) :approved)))))
+
+  (testing "generate-dataset is deterministic — same output each time"
+    (let [ds1 (gen/generate-dataset)
+          ds2 (gen/generate-dataset)]
+      (is (= ds1 ds2))))
+
+  (testing "dataset contains a mix of approved and denied"
+    (let [dataset   (gen/generate-dataset)
+          approved  (filter #(-> % :expected :approved) dataset)
+          denied    (remove #(-> % :expected :approved) dataset)]
+      (is (pos? (count approved)))
+      (is (pos? (count denied))))))
+
+(deftest write-dataset!-test
+  (testing "write-dataset! writes valid JSON to a file"
+    (let [dataset    (gen/generate-dataset)
+          tmp-file   (java.io.File/createTempFile "test-dataset" ".json")
+          tmp-path   (.getAbsolutePath tmp-file)]
+      (try
+        (gen/write-dataset! dataset tmp-path)
+        (let [content   (slurp tmp-path)
+              parsed    (json/read-str content :key-fn keyword)]
+          (is (vector? parsed))
+          (is (= (count dataset) (count parsed)))
+          (is (contains? (first parsed) :request))
+          (is (contains? (first parsed) :expected)))
+        (finally
+          (.delete tmp-file))))))
