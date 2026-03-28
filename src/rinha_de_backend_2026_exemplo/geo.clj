@@ -1,24 +1,4 @@
-(ns rinha-de-backend-2006-exemplo.misc
-  (:require [clojure.string]))
-
-(defn haversine-km-distance
-  "Calculates the great-circle distance (in km) between two points
-   given their latitude and longitude in degrees."
-  ^double [{^double lat1 :lat
-            ^double lon1 :lon}
-           {^double lat2 :lat
-            ^double lon2 :lon}]
-  (let [R      6371 ; Earth's radius in km
-        to-rad #(Math/toRadians %)
-        dlat   (to-rad (- lat2 lat1))
-        dlon   (to-rad (- lon2 lon1))
-        lat1   (to-rad lat1)
-        lat2   (to-rad lat2)
-        a      (+ (* (Math/sin (/ dlat 2)) (Math/sin (/ dlat 2)))
-                  (* (Math/cos lat1) (Math/cos lat2)
-                     (Math/sin (/ dlon 2)) (Math/sin (/ dlon 2))))
-        c      (* 2 (Math/atan2 (Math/sqrt a) (Math/sqrt (- 1 a))))]
-    (* R c)))
+(ns rinha-de-backend-2026-exemplo.geo)
 
 (defn equirectangular-km-distance
   "Calculates approximate distance (in km) between two points
