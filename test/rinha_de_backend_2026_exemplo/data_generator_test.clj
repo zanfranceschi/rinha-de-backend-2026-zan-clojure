@@ -83,3 +83,11 @@
           result  (auth/authorize payload)]
       (is (false? (:approved result)))
       (is (some #{"mcc_relation_restriction"} (:rules_violated result))))))
+
+(deftest gen-multi-rule-test
+  (testing "gen-multi-rule triggers at least 2 rules"
+    (let [rng     (java.util.Random. 42)
+          payload (gen/gen-multi-rule rng 0)
+          result  (auth/authorize payload)]
+      (is (false? (:approved result)))
+      (is (>= (count (:rules_violated result)) 2)))))

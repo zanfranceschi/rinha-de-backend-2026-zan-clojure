@@ -206,3 +206,65 @@
         (assoc-in [:environment :merchant :mcc] merchant-mcc)
         (assoc-in [:context :sale_mcc] sale-mcc)
         (assoc-in [:transaction :amount] (rand-double rng 10.0 100.0)))))
+
+;; ---------------------------------------------------------------------------
+;; Scenario: multi-rule
+;; ---------------------------------------------------------------------------
+
+(defn- gen-multi-restricted-area+interval
+  "Restricted area + anomalous interval."
+  [^Random rng ^long idx]
+  (let [payload   (gen-restricted-area rng idx)
+        ts        (-> payload :transaction :timestamp)
+        instant   (java.time.Instant/parse ts)
+        mins-back (rand-int-range rng 1 5)
+        last-ts   (.toString (.minusSeconds instant (* mins-back 60)))
+        terminal  (-> payload :environment :terminal)]
+    (assoc payload :last_transaction
+           {:timestamp last-ts
+            :terminal  {:latitude  (:latitude terminal)
+                        :longitude (:longitude terminal)}})))
+
+(defn- gen-multi-amount+relation
+  "MCC amount restriction + MCC relation restriction.
+   Pick a merchant MCC from relations. Pick a sale MCC that is NOT in the
+   allowed set AND has amount restrictions. Use an amount that violates."
+  [^Random rng ^long idx]
+  (let [payload      (base-payload rng idx)
+        ;; Use merchant MCC 7802 (horse racing), allowed sale: {7802, 7995, 7801, 5813}
+        ;; Use sale MCC 5411 (grocery, max 5000) — not in allowed set
+        ;; Amount > 5000 triggers amount restriction
+        merchant-mcc "7802"
+        sale-mcc     "5411"
+        amount       (rand-double rng 5001.0 8000.0)]
+    (-> payload
+        (assoc-in [:environment :merchant :mcc] merchant-mcc)
+        (assoc-in [:context :sale_mcc] sale-mcc)
+        (assoc-in [:transaction :amount] amount))))
+
+(defn- gen-multi-restricted-area+speed
+  "Restricted area + anomalous travel speed.
+   Terminal inside polygon, last transaction far away >= 5 min ago."
+  [^Random rng ^long idx]
+  (let [payload  (gen-restricted-area rng idx)
+        ts       (-> payload :transaction :timestamp)
+        instant  (java.time.Instant/parse ts)
+        last-ts  (.toString (.minusSeconds instant 360))
+        ;; Far away location
+        far-lat  (rand-double rng 30.0 40.0)
+        far-lon  (rand-double rng 30.0 40.0)]
+    (assoc payload :last_transaction
+           {:timestamp last-ts
+            :terminal  {:latitude far-lat :longitude far-lon}})))
+
+(def ^:private multi-rule-generators
+  [gen-multi-restricted-area+interval
+   gen-multi-amount+relation
+   gen-multi-restricted-area+speed])
+
+(defn gen-multi-rule
+  "Generates a payload that violates 2-3 rules by rotating through
+   multi-rule generator combinations."
+  [^Random rng ^long idx]
+  (let [gen-fn (rand-nth-seq rng multi-rule-generators)]
+    (gen-fn rng idx)))
