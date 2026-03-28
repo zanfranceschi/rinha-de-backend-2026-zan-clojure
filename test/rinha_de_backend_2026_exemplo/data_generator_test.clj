@@ -43,3 +43,27 @@
           payload (gen/gen-clean rng 0)
           result  (auth/authorize payload)]
       (is (true? (:approved result))))))
+
+(deftest gen-restricted-area-test
+  (testing "gen-restricted-area triggers restricted_area rule"
+    (let [rng     (java.util.Random. 42)
+          payload (gen/gen-restricted-area rng 0)
+          result  (auth/authorize payload)]
+      (is (false? (:approved result)))
+      (is (some #{"restricted_area"} (:rules_violated result))))))
+
+(deftest gen-anomalous-interval-test
+  (testing "gen-anomalous-interval triggers anomalous_interval rule"
+    (let [rng     (java.util.Random. 42)
+          payload (gen/gen-anomalous-interval rng 0)
+          result  (auth/authorize payload)]
+      (is (false? (:approved result)))
+      (is (some #{"anomalous_interval"} (:rules_violated result))))))
+
+(deftest gen-anomalous-travel-speed-test
+  (testing "gen-anomalous-travel-speed triggers anomalous_travel_speed rule"
+    (let [rng     (java.util.Random. 42)
+          payload (gen/gen-anomalous-travel-speed rng 0)
+          result  (auth/authorize payload)]
+      (is (false? (:approved result)))
+      (is (some #{"anomalous_travel_speed"} (:rules_violated result))))))

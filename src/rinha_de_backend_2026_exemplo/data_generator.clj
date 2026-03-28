@@ -78,3 +78,70 @@
   "Generates a payload that passes all authorization rules."
   [^Random rng ^long idx]
   (base-payload rng idx))
+
+;; ---------------------------------------------------------------------------
+;; Scenario: restricted_area
+;; ---------------------------------------------------------------------------
+
+(defn- polygon-centroid
+  "Computes a rough centroid of a polygon (vector of [lon lat] pairs).
+   Excludes the last point (which is the same as the first in GeoJSON)."
+  [polygon]
+  (let [pts (butlast polygon)
+        n   (count pts)]
+    [(/ (reduce + (map first pts)) n)
+     (/ (reduce + (map second pts)) n)]))
+
+(defn gen-restricted-area
+  "Generates a payload with terminal coordinates inside a restricted polygon.
+   All other fields are clean so only restricted_area triggers."
+  [^Random rng ^long idx]
+  (let [polygons  auth/restricted-areas-list
+        polygon   (rand-nth-seq rng polygons)
+        [lon lat] (polygon-centroid polygon)
+        payload   (base-payload rng idx)]
+    (-> payload
+        (assoc-in [:environment :terminal :latitude] lat)
+        (assoc-in [:environment :terminal :longitude] lon))))
+
+;; ---------------------------------------------------------------------------
+;; Scenario: anomalous_interval
+;; ---------------------------------------------------------------------------
+
+(defn gen-anomalous-interval
+  "Generates a payload where last_transaction timestamp is < 5 minutes
+   before current transaction. Terminal locations are the same (safe coords)
+   so anomalous_travel_speed does NOT trigger."
+  [^Random rng ^long idx]
+  (let [payload   (base-payload rng idx)
+        ts        (-> payload :transaction :timestamp)
+        instant   (java.time.Instant/parse ts)
+        ;; 1 to 4 minutes before current transaction
+        mins-back (rand-int-range rng 1 5)
+        last-ts   (.toString (.minusSeconds instant (* mins-back 60)))
+        terminal  (-> payload :environment :terminal)]
+    (assoc payload :last_transaction
+           {:timestamp last-ts
+            :terminal  {:latitude  (:latitude terminal)
+                        :longitude (:longitude terminal)}})))
+
+;; ---------------------------------------------------------------------------
+;; Scenario: anomalous_travel_speed
+;; ---------------------------------------------------------------------------
+
+(defn gen-anomalous-travel-speed
+  "Generates a payload where the cardholder traveled impossibly fast.
+   Current terminal at safe coords, last transaction at a distant location
+   6 minutes ago (>= 5 min so anomalous_interval does NOT trigger)."
+  [^Random rng ^long idx]
+  (let [payload   (base-payload rng idx)
+        ts        (-> payload :transaction :timestamp)
+        instant   (java.time.Instant/parse ts)
+        ;; 6 minutes back — just above the 5-minute anomalous_interval threshold
+        last-ts   (.toString (.minusSeconds instant 360))
+        ;; Far-away location: ~6000km from safe coords at (10, 10)
+        far-lat   (rand-double rng -25.0 -22.0)
+        far-lon   (rand-double rng -48.0 -45.0)]
+    (assoc payload :last_transaction
+           {:timestamp last-ts
+            :terminal  {:latitude far-lat :longitude far-lon}})))
