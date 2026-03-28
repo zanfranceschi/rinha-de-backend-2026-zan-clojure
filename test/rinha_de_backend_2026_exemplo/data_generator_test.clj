@@ -67,3 +67,19 @@
           result  (auth/authorize payload)]
       (is (false? (:approved result)))
       (is (some #{"anomalous_travel_speed"} (:rules_violated result))))))
+
+(deftest gen-mcc-amount-restriction-test
+  (testing "gen-mcc-amount-restriction triggers mcc_amount_restriction rule"
+    (let [rng     (java.util.Random. 42)
+          payload (gen/gen-mcc-amount-restriction rng 0)
+          result  (auth/authorize payload)]
+      (is (false? (:approved result)))
+      (is (some #{"mcc_amount_restriction"} (:rules_violated result))))))
+
+(deftest gen-mcc-relation-restriction-test
+  (testing "gen-mcc-relation-restriction triggers mcc_relation_restriction rule"
+    (let [rng     (java.util.Random. 42)
+          payload (gen/gen-mcc-relation-restriction rng 0)
+          result  (auth/authorize payload)]
+      (is (false? (:approved result)))
+      (is (some #{"mcc_relation_restriction"} (:rules_violated result))))))

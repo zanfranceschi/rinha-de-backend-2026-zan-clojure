@@ -145,3 +145,64 @@
     (assoc payload :last_transaction
            {:timestamp last-ts
             :terminal  {:latitude far-lat :longitude far-lon}})))
+
+;; ---------------------------------------------------------------------------
+;; Scenario: mcc_amount_restriction
+;; ---------------------------------------------------------------------------
+
+(def mccs-with-max
+  "MCCs from mccs_restrictions.json that have a max_amount."
+  (filterv :max_amount auth/mccs-restrictions))
+
+(def mccs-with-min
+  "MCCs from mccs_restrictions.json that have a min_amount."
+  (filterv :min_amount auth/mccs-restrictions))
+
+(defn gen-mcc-amount-restriction
+  "Generates a payload that violates mcc_amount_restriction.
+   Picks a restricted MCC randomly and sets the amount above max or below min.
+   Uses the same MCC for merchant and sale to avoid relation restriction."
+  [^Random rng ^long idx]
+  (let [payload    (base-payload rng idx)
+        use-max?   (.nextBoolean rng)
+        mcc-entry  (if (and use-max? (seq mccs-with-max))
+                     (rand-nth-seq rng mccs-with-max)
+                     (if (seq mccs-with-min)
+                       (rand-nth-seq rng mccs-with-min)
+                       (rand-nth-seq rng mccs-with-max)))
+        mcc        (:mcc mcc-entry)
+        amount     (if (:max_amount mcc-entry)
+                     (rand-double rng
+                                  (+ (:max_amount mcc-entry) 0.01)
+                                  (+ (:max_amount mcc-entry) 500.0))
+                     (rand-double rng 0.01 (- (:min_amount mcc-entry) 0.01)))]
+    (-> payload
+        (assoc-in [:transaction :amount] amount)
+        (assoc-in [:environment :merchant :mcc] mcc)
+        (assoc-in [:context :sale_mcc] mcc))))
+
+;; ---------------------------------------------------------------------------
+;; Scenario: mcc_relation_restriction
+;; ---------------------------------------------------------------------------
+
+(def all-mccs-in-relations
+  "Set of all MCCs that appear anywhere in the relation restrictions file."
+  (into #{}
+        (concat
+         (map :mcc auth/mcc-relation-restrictions)
+         (mapcat (fn [r] (map :mcc (:related r))) auth/mcc-relation-restrictions))))
+
+(defn gen-mcc-relation-restriction
+  "Generates a payload that violates mcc_relation_restriction.
+   Picks a merchant MCC from relation restrictions, then picks a sale MCC
+   that is NOT in the allowed set. Uses a safe amount to avoid amount restriction."
+  [^Random rng ^long idx]
+  (let [payload      (base-payload rng idx)
+        merchant-r   (rand-nth-seq rng auth/mcc-relation-restrictions)
+        merchant-mcc (:mcc merchant-r)
+        allowed      (conj (set (map :mcc (:related merchant-r))) merchant-mcc)
+        sale-mcc     "9999"]
+    (-> payload
+        (assoc-in [:environment :merchant :mcc] merchant-mcc)
+        (assoc-in [:context :sale_mcc] sale-mcc)
+        (assoc-in [:transaction :amount] (rand-double rng 10.0 100.0)))))
