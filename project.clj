@@ -9,8 +9,7 @@
                  [compojure "1.7.2"]
                  [envvar "1.1.2"]
                  [com.taoensso/telemere "1.2.1"]
-                 [org.clojure/data.json "2.5.2"]
-                 [org.locationtech.jts/jts-core "1.20.0"]]
+                 [org.clojure/data.json "2.5.2"]]
   :main ^:skip-aot rinha-de-backend-2026-exemplo.endpoints
   :target-path "target/%s"
   :profiles {:uberjar {:aot      :all
