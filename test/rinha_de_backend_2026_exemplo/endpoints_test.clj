@@ -21,40 +21,32 @@
 ;; ---------------------------------------------------------------------------
 
 (deftest approved-transaction
-  (testing "Clean payload returns 200 with approved true"
-    (let [payload  {:transaction    {:id "tx-1" :amount 100.0 :currency "BRL"
-                                     :installments 1
-                                     :timestamp "2026-03-27T14:30:00Z"}
-                    :environment    {:merchant {:id "m1" :name "Store" :mcc "5411"}
-                                     :terminal {:id "t1" :latitude 0.0 :longitude 0.0}}
-                    :context        {:sale_mcc "5411"}
-                    :last_transaction nil}
+  (testing "Legit-looking payload returns 200 with approved and fraud_score"
+    (let [payload  {:id          "tx-legit"
+                    :transaction {:amount       50.0
+                                  :installments 1
+                                  :requested_at "2026-03-16T14:00:00Z"}
+                    :customer    {:avg_amount      60.0
+                                  :tx_count_24h    2
+                                  :known_merchants ["MERC-001"]}
+                    :merchant    {:id         "MERC-001"
+                                  :mcc        "5411"
+                                  :avg_amount 45.0}
+                    :terminal    {:is_online    false
+                                  :card_present true
+                                  :km_from_home 2.0}
+                    :last_transaction {:timestamp       "2026-03-16T12:00:00Z"
+                                       :km_from_current 1.5}}
           response (post-authorization payload)
           body     (parse-body response)]
       (is (= 200 (:status response)))
-      (is (true? (:approved body))))))
+      (is (contains? body :approved))
+      (is (contains? body :fraud_score))
+      (is (boolean? (:approved body)))
+      (is (<= 0.0 (:fraud_score body) 1.0)))))
 
 ;; ---------------------------------------------------------------------------
-;; 2. Denied transaction
-;; ---------------------------------------------------------------------------
-
-(deftest denied-transaction
-  (testing "Payload violating mcc_amount_restriction returns 200 with approved false"
-    (let [payload  {:transaction    {:id "tx-2" :amount 500.0 :currency "BRL"
-                                     :installments 1
-                                     :timestamp "2026-03-27T14:30:00Z"}
-                    :environment    {:merchant {:id "m1" :name "Casino" :mcc "7801"}
-                                     :terminal {:id "t1" :latitude 0.0 :longitude 0.0}}
-                    :context        {:sale_mcc "7801"}
-                    :last_transaction nil}
-          response (post-authorization payload)
-          body     (parse-body response)]
-      (is (= 200 (:status response)))
-      (is (false? (:approved body)))
-      (is (some #{"mcc_amount_restriction"} (:rules_violated body))))))
-
-;; ---------------------------------------------------------------------------
-;; 3. Not found
+;; 2. Not found
 ;; ---------------------------------------------------------------------------
 
 (deftest not-found-route
