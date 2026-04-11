@@ -2,8 +2,9 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [clojure.data.json :as json]
-   [rinha-de-backend-2026-exemplo.data-generator :as gen]
-   [rinha-de-backend-2026-exemplo.authorization :as auth]))
+   [rinha-de-backend-2026-exemplo.data-generator :as gen]))
+
+;; PRNG helpers
 
 (deftest rand-double-in-range-test
   (testing "rand-double returns value within [min, max]"
@@ -26,107 +27,134 @@
           v    (gen/rand-nth-seq rng coll)]
       (is (contains? (set coll) v)))))
 
-(deftest base-payload-test
-  (testing "base-payload produces a valid clean request structure"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/base-payload rng 0)]
-      (is (map? (:transaction payload)))
-      (is (string? (-> payload :transaction :id)))
-      (is (number? (-> payload :transaction :amount)))
-      (is (= "BRL" (-> payload :transaction :currency)))
-      (is (map? (:environment payload)))
-      (is (map? (:context payload)))
-      (is (nil? (:last_transaction payload))))))
+;; Request generation
 
-(deftest gen-clean-test
-  (testing "gen-clean produces an approved transaction"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-clean rng 0)
-          result  (auth/authorize payload)]
-      (is (true? (:approved result))))))
+(deftest generate-request-produces-valid-payload
+  (testing "generate-request returns a map with all required fields"
+    (let [rng (java.util.Random. 42)
+          req (gen/generate-request rng :legit)]
+      (is (string? (:id req)))
+      (is (map? (:transaction req)))
+      (is (number? (-> req :transaction :amount)))
+      (is (number? (-> req :transaction :installments)))
+      (is (string? (-> req :transaction :requested_at)))
+      (is (map? (:customer req)))
+      (is (number? (-> req :customer :avg_amount)))
+      (is (number? (-> req :customer :tx_count_24h)))
+      (is (vector? (-> req :customer :known_merchants)))
+      (is (map? (:merchant req)))
+      (is (string? (-> req :merchant :id)))
+      (is (string? (-> req :merchant :mcc)))
+      (is (number? (-> req :merchant :avg_amount)))
+      (is (map? (:terminal req)))
+      (is (boolean? (-> req :terminal :is_online)))
+      (is (boolean? (-> req :terminal :card_present)))
+      (is (number? (-> req :terminal :km_from_home))))))
 
-(deftest gen-restricted-area-test
-  (testing "gen-restricted-area triggers restricted_area rule"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-restricted-area rng 0)
-          result  (auth/authorize payload)]
-      (is (false? (:approved result)))
-      (is (some #{"restricted_area"} (:rules_violated result))))))
+(deftest generate-request-legit-coherence
+  (testing "Legit profile produces coherent low-risk values"
+    (let [rng (java.util.Random. 42)
+          req (gen/generate-request rng :legit)]
+      (is (<= (-> req :transaction :amount) 2000.0))
+      (is (<= (-> req :terminal :km_from_home) 100.0)))))
 
-(deftest gen-anomalous-interval-test
-  (testing "gen-anomalous-interval triggers anomalous_interval rule"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-anomalous-interval rng 0)
-          result  (auth/authorize payload)]
-      (is (false? (:approved result)))
-      (is (some #{"anomalous_interval"} (:rules_violated result))))))
+(deftest generate-request-fraud-coherence
+  (testing "Fraud profile produces coherent high-risk values"
+    (let [rng (java.util.Random. 42)
+          req (gen/generate-request rng :fraud)]
+      (is (>= (-> req :transaction :amount) 1000.0))
+      (is (>= (-> req :terminal :km_from_home) 100.0)))))
 
-(deftest gen-anomalous-travel-speed-test
-  (testing "gen-anomalous-travel-speed triggers anomalous_travel_speed rule"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-anomalous-travel-speed rng 0)
-          result  (auth/authorize payload)]
-      (is (false? (:approved result)))
-      (is (some #{"anomalous_travel_speed"} (:rules_violated result))))))
+(deftest generate-request-online-coherence
+  (testing "Online transactions have card_present=false"
+    (let [rng      (java.util.Random. 99)
+          requests (repeatedly 50 #(gen/generate-request rng :fraud))
+          online   (filter #(-> % :terminal :is_online) requests)]
+      (doseq [req online]
+        (is (false? (-> req :terminal :card_present)))))))
 
-(deftest gen-mcc-amount-restriction-test
-  (testing "gen-mcc-amount-restriction triggers mcc_amount_restriction rule"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-mcc-amount-restriction rng 0)
-          result  (auth/authorize payload)]
-      (is (false? (:approved result)))
-      (is (some #{"mcc_amount_restriction"} (:rules_violated result))))))
+(deftest generate-request-null-last-transaction
+  (testing "Some generated requests have null last_transaction"
+    (let [rng      (java.util.Random. 42)
+          requests (repeatedly 50 #(gen/generate-request rng :legit))
+          nulls    (filter #(nil? (:last_transaction %)) requests)]
+      (is (pos? (count nulls))))))
 
-(deftest gen-mcc-relation-restriction-test
-  (testing "gen-mcc-relation-restriction triggers mcc_relation_restriction rule"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-mcc-relation-restriction rng 0)
-          result  (auth/authorize payload)]
-      (is (false? (:approved result)))
-      (is (some #{"mcc_relation_restriction"} (:rules_violated result))))))
+;; Reference dataset generation
 
-(deftest gen-multi-rule-test
-  (testing "gen-multi-rule triggers at least 2 rules"
-    (let [rng     (java.util.Random. 42)
-          payload (gen/gen-multi-rule rng 0)
-          result  (auth/authorize payload)]
-      (is (false? (:approved result)))
-      (is (>= (count (:rules_violated result)) 2)))))
-
-(deftest generate-dataset-test
-  (testing "generate-dataset returns a vector of ~200 entries with :request and :expected"
-    (let [dataset (gen/generate-dataset)]
-      (is (vector? dataset))
-      (is (= gen/default-num-requests (count dataset)))
+(deftest generate-reference-dataset-shape
+  (testing "Reference dataset has correct shape"
+    (let [dataset (gen/generate-reference-dataset 100)]
+      (is (= 100 (count dataset)))
       (doseq [entry dataset]
-        (is (map? (:request entry)))
-        (is (map? (:expected entry)))
-        (is (contains? (:expected entry) :approved)))))
+        (is (vector? (:vector entry)))
+        (is (= 14 (count (:vector entry))))
+        (is (#{"fraud" "legit"} (:label entry)))))))
 
-  (testing "generate-dataset is deterministic — same output each time"
-    (let [ds1 (gen/generate-dataset)
-          ds2 (gen/generate-dataset)]
-      (is (= ds1 ds2))))
+(deftest generate-reference-dataset-values-in-range
+  (testing "All vector values are 0..1 or -1 sentinel"
+    (let [dataset (gen/generate-reference-dataset 100)]
+      (doseq [entry dataset
+              val   (:vector entry)]
+        (is (or (= -1.0 val)
+                (and (<= 0.0 val) (<= val 1.0))))))))
 
-  (testing "dataset contains a mix of approved and denied"
-    (let [dataset   (gen/generate-dataset)
-          approved  (filter #(-> % :expected :approved) dataset)
-          denied    (remove #(-> % :expected :approved) dataset)]
-      (is (pos? (count approved)))
-      (is (pos? (count denied))))))
+(deftest generate-reference-dataset-has-both-labels
+  (testing "Dataset contains both fraud and legit labels"
+    (let [dataset (gen/generate-reference-dataset 100)
+          labels  (set (map :label dataset))]
+      (is (contains? labels "fraud"))
+      (is (contains? labels "legit")))))
 
-(deftest write-dataset!-test
-  (testing "write-dataset! writes valid JSON to a file"
-    (let [dataset    (gen/generate-dataset)
-          tmp-file   (java.io.File/createTempFile "test-dataset" ".json")
-          tmp-path   (.getAbsolutePath tmp-file)]
+(deftest generate-reference-dataset-deterministic
+  (testing "Same size produces same dataset (seed 42)"
+    (let [ds1 (gen/generate-reference-dataset 50)
+          ds2 (gen/generate-reference-dataset 50)]
+      (is (= ds1 ds2)))))
+
+;; Test payload generation
+
+(deftest generate-test-payloads-shape
+  (testing "Test payloads are valid request maps"
+    (let [payloads (gen/generate-test-payloads 50)]
+      (is (= 50 (count payloads)))
+      (doseq [p payloads]
+        (is (map? (:transaction p)))
+        (is (map? (:customer p)))
+        (is (map? (:merchant p)))
+        (is (map? (:terminal p)))))))
+
+(deftest generate-test-payloads-deterministic
+  (testing "Same size produces same payloads (different seed from references)"
+    (let [p1 (gen/generate-test-payloads 50)
+          p2 (gen/generate-test-payloads 50)]
+      (is (= p1 p2)))))
+
+;; Write functions
+
+(deftest write-reference-dataset-test
+  (testing "write-reference-dataset! writes valid JSON"
+    (let [tmp-file (java.io.File/createTempFile "test-refs" ".json")
+          tmp-path (.getAbsolutePath tmp-file)]
       (try
-        (gen/write-dataset! dataset tmp-path)
-        (let [content   (slurp tmp-path)
-              parsed    (json/read-str content :key-fn keyword)]
-          (is (vector? parsed))
-          (is (= (count dataset) (count parsed)))
-          (is (contains? (first parsed) :request))
-          (is (contains? (first parsed) :expected)))
+        (gen/write-reference-dataset! 20 tmp-path)
+        (let [content (slurp tmp-path)
+              parsed  (json/read-str content :key-fn keyword)]
+          (is (= 20 (count parsed)))
+          (is (contains? (first parsed) :vector))
+          (is (contains? (first parsed) :label)))
+        (finally
+          (.delete tmp-file))))))
+
+(deftest write-test-payloads-test
+  (testing "write-test-payloads! writes valid JSON"
+    (let [tmp-file (java.io.File/createTempFile "test-payloads" ".json")
+          tmp-path (.getAbsolutePath tmp-file)]
+      (try
+        (gen/write-test-payloads! 20 tmp-path)
+        (let [content (slurp tmp-path)
+              parsed  (json/read-str content :key-fn keyword)]
+          (is (= 20 (count parsed)))
+          (is (contains? (first parsed) :transaction)))
         (finally
           (.delete tmp-file))))))

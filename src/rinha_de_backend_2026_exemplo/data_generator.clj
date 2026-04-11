@@ -2,12 +2,12 @@
   (:require
    [clojure.data.json :as json]
    [clojure.java.io :as io]
-   [rinha-de-backend-2026-exemplo.authorization :as auth])
+   [rinha-de-backend-2026-exemplo.normalization :as norm])
   (:import
    [java.util Random]))
 
-(def seed 42)
-(def default-num-requests 200)
+(def reference-seed 42)
+(def payload-seed 4242)
 
 ;; ---------------------------------------------------------------------------
 ;; PRNG helpers
@@ -30,304 +30,197 @@
     (v (.nextInt rng (count v)))))
 
 ;; ---------------------------------------------------------------------------
-;; Safe MCCs
+;; Normalization config + MCC risk (loaded for vector generation)
 ;; ---------------------------------------------------------------------------
 
-(def safe-merchant-mcc
-  "MCC 5411 (Grocery) — has amount restriction (max 5000) but is in relation
-   restrictions with known related MCCs. We use it with sale_mcc also 5411
-   so relation check passes, and we keep amounts within range."
-  "5411")
+(def normalization-config
+  (json/read-str (slurp (io/resource "normalization.json")) :key-fn keyword))
+
+(def mcc-risk
+  (json/read-str (slurp (io/resource "mcc_risk.json"))))
 
 ;; ---------------------------------------------------------------------------
-;; Base payload
+;; Merchant pools
 ;; ---------------------------------------------------------------------------
 
-(defn base-payload
-  "Builds a clean payload that passes all rules.
-   - Coordinates at safe location (10.0, 10.0) — far from any restricted polygon
-   - Merchant and sale MCC both 5411 (grocery) — compatible relation
-   - Amount between 50-4000 (within grocery max of 5000)
-   - No last_transaction"
-  [^Random rng ^long idx]
-  {:transaction    {:id           (str "tx-" seed "-" (format "%04d" idx))
-                    :amount       (rand-double rng 50.0 4000.0)
-                    :currency     "BRL"
-                    :installments (rand-int-range rng 1 13)
-                    :timestamp    (str "2026-03-27T"
-                                       (format "%02d" (rand-int-range rng 8 22))
-                                       ":"
-                                       (format "%02d" (rand-int-range rng 0 60))
-                                       ":"
-                                       (format "%02d" (rand-int-range rng 0 60))
-                                       "Z")}
-   :environment    {:merchant {:id   (str "m-" (format "%04d" idx))
-                               :name (str "Store-" idx)
-                               :mcc  safe-merchant-mcc}
-                    :terminal {:id        (str "t-" (format "%04d" idx))
-                               :latitude  (rand-double rng 5.0 15.0)
-                               :longitude (rand-double rng 5.0 15.0)}}
-   :context        {:sale_mcc safe-merchant-mcc}
-   :last_transaction nil})
+(def merchant-pool
+  ["MERC-001" "MERC-002" "MERC-003" "MERC-004" "MERC-005"
+   "MERC-010" "MERC-011" "MERC-012" "MERC-013" "MERC-014"])
+
+(def mcc-pool (vec (keys mcc-risk)))
 
 ;; ---------------------------------------------------------------------------
-;; Scenario: clean
+;; Profile-based request generation
 ;; ---------------------------------------------------------------------------
 
-(defn gen-clean
-  "Generates a payload that passes all authorization rules."
-  [^Random rng ^long idx]
-  (base-payload rng idx))
+(defn- gen-timestamp
+  "Generate a timestamp string for a given hour range."
+  [^Random rng year month day hour-min hour-max]
+  (let [hour (rand-int-range rng hour-min hour-max)
+        min  (rand-int-range rng 0 60)
+        sec  (rand-int-range rng 0 60)]
+    (format "%04d-%02d-%02dT%02d:%02d:%02dZ" year month day hour min sec)))
+
+(defn- gen-last-transaction
+  "Generate a last_transaction or nil.
+   ~20% chance of nil (new customer / no history)."
+  [^Random rng profile requested-at-str]
+  (if (< (.nextDouble rng) 0.2)
+    nil
+    (let [requested-at (java.time.Instant/parse requested-at-str)
+          minutes-back (case profile
+                         :legit      (rand-int-range rng 30 720)
+                         :fraud      (rand-int-range rng 1 10)
+                         :borderline (rand-int-range rng 5 120))
+          last-ts      (.toString (.minusSeconds requested-at (* minutes-back 60)))
+          km           (case profile
+                         :legit      (rand-double rng 0.0 20.0)
+                         :fraud      (rand-double rng 200.0 1000.0)
+                         :borderline (rand-double rng 20.0 300.0))]
+      {:timestamp       last-ts
+       :km_from_current km})))
+
+(defn generate-request
+  "Generate a coherent authorization request for a given profile (:legit, :fraud, :borderline).
+   Fields are internally consistent based on the profile."
+  [^Random rng profile]
+  (let [;; Core transaction values by profile
+        amount       (case profile
+                       :legit      (rand-double rng 10.0 500.0)
+                       :fraud      (rand-double rng 2000.0 10000.0)
+                       :borderline (rand-double rng 400.0 3000.0))
+        installments (case profile
+                       :legit      (rand-int-range rng 1 4)
+                       :fraud      (rand-int-range rng 6 13)
+                       :borderline (rand-int-range rng 3 8))
+
+        ;; Time — fraud tends to be nighttime
+        hour-min     (case profile :legit 8  :fraud 0  :borderline 6)
+        hour-max     (case profile :legit 21 :fraud 7  :borderline 23)
+        requested-at (gen-timestamp rng 2026 3 (rand-int-range rng 10 28) hour-min hour-max)
+
+        ;; Customer
+        avg-amount   (case profile
+                       :legit      (rand-double rng (/ amount 0.5) (* amount 2.0))
+                       :fraud      (rand-double rng 50.0 300.0)
+                       :borderline (rand-double rng 100.0 500.0))
+        tx-count     (case profile
+                       :legit      (rand-int-range rng 1 6)
+                       :fraud      (rand-int-range rng 8 21)
+                       :borderline (rand-int-range rng 4 12))
+        ;; Known merchants: legit usually knows the merchant, fraud doesn't
+        known-count  (rand-int-range rng 2 6)
+        known-merchants (mapv #(str "MERC-" (format "%03d" %))
+                              (repeatedly known-count #(rand-int-range rng 1 20)))
+
+        ;; Merchant
+        merchant-id  (case profile
+                       :legit      (rand-nth-seq rng known-merchants)
+                       :fraud      (str "MERC-" (format "%03d" (rand-int-range rng 50 100)))
+                       :borderline (if (< (.nextDouble rng) 0.5)
+                                     (rand-nth-seq rng known-merchants)
+                                     (str "MERC-" (format "%03d" (rand-int-range rng 30 60)))))
+        mcc          (case profile
+                       :legit      (rand-nth-seq rng ["5411" "5812" "5912" "5311"])
+                       :fraud      (rand-nth-seq rng ["7995" "7801" "7802"])
+                       :borderline (rand-nth-seq rng mcc-pool))
+        merch-avg    (case profile
+                       :legit      (rand-double rng 30.0 500.0)
+                       :fraud      (rand-double rng 20.0 100.0)
+                       :borderline (rand-double rng 50.0 300.0))
+
+        ;; Terminal
+        is-online    (case profile
+                       :legit      (< (.nextDouble rng) 0.3)
+                       :fraud      (< (.nextDouble rng) 0.8)
+                       :borderline (< (.nextDouble rng) 0.5))
+        card-present (if is-online false (< (.nextDouble rng) 0.9))
+        km-from-home (case profile
+                       :legit      (rand-double rng 0.0 50.0)
+                       :fraud      (rand-double rng 200.0 1000.0)
+                       :borderline (rand-double rng 30.0 400.0))
+
+        ;; Last transaction
+        last-tx      (gen-last-transaction rng profile requested-at)]
+
+    {:id               (str "tx-" (.nextInt rng Integer/MAX_VALUE))
+     :transaction      {:amount       amount
+                        :installments installments
+                        :requested_at requested-at}
+     :customer         {:avg_amount      avg-amount
+                        :tx_count_24h    tx-count
+                        :known_merchants known-merchants}
+     :merchant         {:id         merchant-id
+                        :mcc        mcc
+                        :avg_amount merch-avg}
+     :terminal         {:is_online    is-online
+                        :card_present card-present
+                        :km_from_home km-from-home}
+     :last_transaction last-tx}))
 
 ;; ---------------------------------------------------------------------------
-;; Scenario: restricted_area
+;; Profile distribution
 ;; ---------------------------------------------------------------------------
 
-(defn- polygon-centroid
-  "Computes a rough centroid of a polygon (vector of [lon lat] pairs).
-   Excludes the last point (which is the same as the first in GeoJSON)."
-  [polygon]
-  (let [pts (butlast polygon)
-        n   (count pts)]
-    [(/ (reduce + (map first pts)) n)
-     (/ (reduce + (map second pts)) n)]))
-
-(defn gen-restricted-area
-  "Generates a payload with terminal coordinates inside a restricted polygon.
-   All other fields are clean so only restricted_area triggers."
-  [^Random rng ^long idx]
-  (let [polygons  auth/restricted-areas-list
-        polygon   (rand-nth-seq rng polygons)
-        [lon lat] (polygon-centroid polygon)
-        payload   (base-payload rng idx)]
-    (-> payload
-        (assoc-in [:environment :terminal :latitude] lat)
-        (assoc-in [:environment :terminal :longitude] lon))))
-
-;; ---------------------------------------------------------------------------
-;; Scenario: anomalous_interval
-;; ---------------------------------------------------------------------------
-
-(defn gen-anomalous-interval
-  "Generates a payload where last_transaction timestamp is < 5 minutes
-   before current transaction. Terminal locations are the same (safe coords)
-   so anomalous_travel_speed does NOT trigger."
-  [^Random rng ^long idx]
-  (let [payload   (base-payload rng idx)
-        ts        (-> payload :transaction :timestamp)
-        instant   (java.time.Instant/parse ts)
-        ;; 1 to 4 minutes before current transaction
-        mins-back (rand-int-range rng 1 5)
-        last-ts   (.toString (.minusSeconds instant (* mins-back 60)))
-        terminal  (-> payload :environment :terminal)]
-    (assoc payload :last_transaction
-           {:timestamp last-ts
-            :terminal  {:latitude  (:latitude terminal)
-                        :longitude (:longitude terminal)}})))
-
-;; ---------------------------------------------------------------------------
-;; Scenario: anomalous_travel_speed
-;; ---------------------------------------------------------------------------
-
-(defn gen-anomalous-travel-speed
-  "Generates a payload where the cardholder traveled impossibly fast.
-   Current terminal at safe coords, last transaction at a distant location
-   6 minutes ago (>= 5 min so anomalous_interval does NOT trigger)."
-  [^Random rng ^long idx]
-  (let [payload   (base-payload rng idx)
-        ts        (-> payload :transaction :timestamp)
-        instant   (java.time.Instant/parse ts)
-        ;; 6 minutes back — just above the 5-minute anomalous_interval threshold
-        last-ts   (.toString (.minusSeconds instant 360))
-        ;; Far-away location: ~6000km from safe coords at (10, 10)
-        far-lat   (rand-double rng -25.0 -22.0)
-        far-lon   (rand-double rng -48.0 -45.0)]
-    (assoc payload :last_transaction
-           {:timestamp last-ts
-            :terminal  {:latitude far-lat :longitude far-lon}})))
-
-;; ---------------------------------------------------------------------------
-;; Scenario: mcc_amount_restriction
-;; ---------------------------------------------------------------------------
-
-(def mccs-with-max
-  "MCCs from mccs_restrictions.json that have a max_amount."
-  (filterv :max_amount auth/mccs-restrictions))
-
-(def mccs-with-min
-  "MCCs from mccs_restrictions.json that have a min_amount."
-  (filterv :min_amount auth/mccs-restrictions))
-
-(defn gen-mcc-amount-restriction
-  "Generates a payload that violates mcc_amount_restriction.
-   Picks a restricted MCC randomly and sets the amount above max or below min.
-   Uses the same MCC for merchant and sale to avoid relation restriction."
-  [^Random rng ^long idx]
-  (let [payload    (base-payload rng idx)
-        use-max?   (.nextBoolean rng)
-        mcc-entry  (if (and use-max? (seq mccs-with-max))
-                     (rand-nth-seq rng mccs-with-max)
-                     (if (seq mccs-with-min)
-                       (rand-nth-seq rng mccs-with-min)
-                       (rand-nth-seq rng mccs-with-max)))
-        mcc        (:mcc mcc-entry)
-        amount     (if (:max_amount mcc-entry)
-                     (rand-double rng
-                                  (+ (:max_amount mcc-entry) 0.01)
-                                  (+ (:max_amount mcc-entry) 500.0))
-                     (rand-double rng 0.01 (- (:min_amount mcc-entry) 0.01)))]
-    (-> payload
-        (assoc-in [:transaction :amount] amount)
-        (assoc-in [:environment :merchant :mcc] mcc)
-        (assoc-in [:context :sale_mcc] mcc))))
-
-;; ---------------------------------------------------------------------------
-;; Scenario: mcc_relation_restriction
-;; ---------------------------------------------------------------------------
-
-(def all-mccs-in-relations
-  "Set of all MCCs that appear anywhere in the relation restrictions file."
-  (into #{}
-        (concat
-         (map :mcc auth/mcc-relation-restrictions)
-         (mapcat (fn [r] (map :mcc (:related r))) auth/mcc-relation-restrictions))))
-
-(defn gen-mcc-relation-restriction
-  "Generates a payload that violates mcc_relation_restriction.
-   Picks a merchant MCC from relation restrictions, then picks a sale MCC
-   that is NOT in the allowed set. Uses a safe amount to avoid amount restriction."
-  [^Random rng ^long idx]
-  (let [payload      (base-payload rng idx)
-        merchant-r   (rand-nth-seq rng auth/mcc-relation-restrictions)
-        merchant-mcc (:mcc merchant-r)
-        allowed      (conj (set (map :mcc (:related merchant-r))) merchant-mcc)
-        sale-mcc     "9999"]
-    (-> payload
-        (assoc-in [:environment :merchant :mcc] merchant-mcc)
-        (assoc-in [:context :sale_mcc] sale-mcc)
-        (assoc-in [:transaction :amount] (rand-double rng 10.0 100.0)))))
-
-;; ---------------------------------------------------------------------------
-;; Scenario: multi-rule
-;; ---------------------------------------------------------------------------
-
-(defn- gen-multi-restricted-area+interval
-  "Restricted area + anomalous interval."
-  [^Random rng ^long idx]
-  (let [payload   (gen-restricted-area rng idx)
-        ts        (-> payload :transaction :timestamp)
-        instant   (java.time.Instant/parse ts)
-        mins-back (rand-int-range rng 1 5)
-        last-ts   (.toString (.minusSeconds instant (* mins-back 60)))
-        terminal  (-> payload :environment :terminal)]
-    (assoc payload :last_transaction
-           {:timestamp last-ts
-            :terminal  {:latitude  (:latitude terminal)
-                        :longitude (:longitude terminal)}})))
-
-(defn- gen-multi-amount+relation
-  "MCC amount restriction + MCC relation restriction.
-   Pick a merchant MCC from relations. Pick a sale MCC that is NOT in the
-   allowed set AND has amount restrictions. Use an amount that violates."
-  [^Random rng ^long idx]
-  (let [payload      (base-payload rng idx)
-        ;; Use merchant MCC 7802 (horse racing), allowed sale: {7802, 7995, 7801, 5813}
-        ;; Use sale MCC 5411 (grocery, max 5000) — not in allowed set
-        ;; Amount > 5000 triggers amount restriction
-        merchant-mcc "7802"
-        sale-mcc     "5411"
-        amount       (rand-double rng 5001.0 8000.0)]
-    (-> payload
-        (assoc-in [:environment :merchant :mcc] merchant-mcc)
-        (assoc-in [:context :sale_mcc] sale-mcc)
-        (assoc-in [:transaction :amount] amount))))
-
-(defn- gen-multi-restricted-area+speed
-  "Restricted area + anomalous travel speed.
-   Terminal inside polygon, last transaction far away >= 5 min ago."
-  [^Random rng ^long idx]
-  (let [payload  (gen-restricted-area rng idx)
-        ts       (-> payload :transaction :timestamp)
-        instant  (java.time.Instant/parse ts)
-        last-ts  (.toString (.minusSeconds instant 360))
-        ;; Far away location
-        far-lat  (rand-double rng 30.0 40.0)
-        far-lon  (rand-double rng 30.0 40.0)]
-    (assoc payload :last_transaction
-           {:timestamp last-ts
-            :terminal  {:latitude far-lat :longitude far-lon}})))
-
-(def ^:private multi-rule-generators
-  [gen-multi-restricted-area+interval
-   gen-multi-amount+relation
-   gen-multi-restricted-area+speed])
-
-(defn gen-multi-rule
-  "Generates a payload that violates 2-3 rules by rotating through
-   multi-rule generator combinations."
-  [^Random rng ^long idx]
-  (let [gen-fn (rand-nth-seq rng multi-rule-generators)]
-    (gen-fn rng idx)))
-
-;; ---------------------------------------------------------------------------
-;; Dataset generation
-;; ---------------------------------------------------------------------------
-
-(def ^:private scenario-distribution
-  "Distribution of scenarios. Weights determine how many of each ~200 total.
-   Clean ~40%, each single-rule ~10%, multi-rule ~10%."
-  [{:generator gen-clean                    :weight 40}
-   {:generator gen-restricted-area          :weight 10}
-   {:generator gen-anomalous-interval       :weight 10}
-   {:generator gen-anomalous-travel-speed   :weight 10}
-   {:generator gen-mcc-amount-restriction   :weight 10}
-   {:generator gen-mcc-relation-restriction :weight 10}
-   {:generator gen-multi-rule               :weight 10}])
-
-(defn- build-scenario-list
-  "Expands scenario-distribution into a flat list of generator fns
-   proportional to weights, totaling num-requests."
-  [num-requests]
-  (let [total-weight (reduce + (map :weight scenario-distribution))
-        expanded     (mapcat (fn [{:keys [generator weight]}]
-                               (let [n (Math/round (* (/ (double weight) total-weight)
-                                                      num-requests))]
-                                 (repeat n generator)))
-                             scenario-distribution)
-        ;; Adjust to exact count — pad or trim with clean
-        diff         (- num-requests (count expanded))]
+(defn- pick-profile
+  "Pick a profile based on distribution: 65% legit, 25% fraud, 10% borderline."
+  [^Random rng]
+  (let [r (.nextDouble rng)]
     (cond
-      (pos? diff)  (concat expanded (repeat diff gen-clean))
-      (neg? diff)  (take num-requests expanded)
-      :else        expanded)))
+      (< r 0.65) :legit
+      (< r 0.90) :fraud
+      :else      :borderline)))
 
-(defn generate-dataset
-  "Generates the full dataset as a vector of {:request ... :expected ...} maps.
-   Uses hardcoded seed 42 for determinism."
-  ([] (generate-dataset default-num-requests))
-  ([num-requests]
-   (let [rng        (Random. seed)
-         scenarios  (vec (build-scenario-list num-requests))
-         ;; Shuffle scenarios using the seeded RNG for variety in ordering
-         shuffled   (let [arr (java.util.ArrayList. scenarios)]
-                      (java.util.Collections/shuffle arr rng)
-                      (vec arr))]
-     (mapv (fn [idx gen-fn]
-             (let [request  (gen-fn rng idx)
-                   expected (auth/authorize request)]
-               {:request  request
-                :expected expected}))
-           (range num-requests)
-           shuffled))))
+;; ---------------------------------------------------------------------------
+;; Reference dataset generation
+;; ---------------------------------------------------------------------------
 
-(def default-output-path "test-scripts/data-generator/preview-dataset.json")
+(defn generate-reference-dataset
+  "Generate N labeled reference vectors. Uses reference-seed for determinism."
+  [n]
+  (let [rng (Random. reference-seed)]
+    (mapv (fn [_]
+            (let [profile (pick-profile rng)
+                  request (generate-request rng profile)
+                  vector  (norm/normalize request normalization-config mcc-risk)
+                  label   (case profile
+                            :legit      "legit"
+                            :fraud      "fraud"
+                            :borderline (if (< (.nextDouble rng) 0.5) "fraud" "legit"))]
+              {:vector vector
+               :label  label}))
+          (range n))))
 
-(defn write-dataset!
-  "Writes the dataset to a JSON file. Keywords are converted to strings."
-  ([dataset] (write-dataset! dataset default-output-path))
-  ([dataset path]
-   (spit path (json/write-str dataset))
-   (println (str "Wrote " (count dataset) " entries to " path))))
+;; ---------------------------------------------------------------------------
+;; Test payload generation
+;; ---------------------------------------------------------------------------
 
-(def ds (generate-dataset))
-(write-dataset! ds)
+(defn generate-test-payloads
+  "Generate M test request payloads. Uses payload-seed (different from reference-seed)
+   so test payloads are NOT in the reference dataset."
+  [m]
+  (let [rng (Random. payload-seed)]
+    (mapv (fn [_]
+            (let [profile (pick-profile rng)]
+              (generate-request rng profile)))
+          (range m))))
+
+;; ---------------------------------------------------------------------------
+;; Write functions
+;; ---------------------------------------------------------------------------
+
+(defn write-reference-dataset!
+  "Generate and write references.json."
+  ([n] (write-reference-dataset! n "resources/references.json"))
+  ([n path]
+   (let [dataset (generate-reference-dataset n)]
+     (spit path (json/write-str dataset))
+     (println (str "Wrote " (count dataset) " reference vectors to " path)))))
+
+(defn write-test-payloads!
+  "Generate and write test payloads JSON."
+  ([m] (write-test-payloads! m "test-scripts/data-generator/test-payloads.json"))
+  ([m path]
+   (let [payloads (generate-test-payloads m)]
+     (spit path (json/write-str payloads))
+     (println (str "Wrote " (count payloads) " test payloads to " path)))))
