@@ -1,7 +1,7 @@
-(ns rinha-de-backend-2026-exemplo.authorization-test
+(ns rinha-de-backend-2026-exemplo.fraud-score-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [rinha-de-backend-2026-exemplo.authorization :as auth]))
+   [rinha-de-backend-2026-exemplo.fraud-score :as fraud-score]))
 
 (defn legit-request
   "A request that should be classified as legit:
@@ -45,26 +45,26 @@
 
 (deftest authorize-legit-transaction
   (testing "Legit-looking transaction is approved"
-    (let [result (auth/authorize (legit-request))]
+    (let [result (fraud-score/score (legit-request))]
       (is (true? (:approved result)))
       (is (< (:fraud_score result) 0.6)))))
 
 (deftest authorize-fraud-transaction
   (testing "Fraud-looking transaction is not approved"
-    (let [result (auth/authorize (fraud-request))]
+    (let [result (fraud-score/score (fraud-request))]
       (is (false? (:approved result)))
       (is (>= (:fraud_score result) 0.6)))))
 
 (deftest authorize-null-last-transaction
   (testing "Request with null last_transaction still works"
     (let [req    (assoc (legit-request) :last_transaction nil)
-          result (auth/authorize req)]
+          result (fraud-score/score req)]
       (is (boolean? (:approved result)))
       (is (number? (:fraud_score result))))))
 
 (deftest authorize-response-shape
   (testing "Response contains approved and fraud_score"
-    (let [result (auth/authorize (legit-request))]
+    (let [result (fraud-score/score (legit-request))]
       (is (contains? result :approved))
       (is (contains? result :fraud_score))
       (is (boolean? (:approved result)))

@@ -4,14 +4,14 @@
             [envvar.core :as envvar :refer [env]]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
-            [rinha-de-backend-2026-exemplo.authorization :as authorization]
+            [rinha-de-backend-2026-exemplo.fraud-score :as fraud-score]
             [taoensso.telemere :as tel])
   (:gen-class))
 
 (defroutes routes
   (POST "/fraud-score" req
     (let [payload (:body req)
-          result  (authorization/authorize payload)]
+          result  (fraud-score/score payload)]
       {:status 200
        :body   result}))
 

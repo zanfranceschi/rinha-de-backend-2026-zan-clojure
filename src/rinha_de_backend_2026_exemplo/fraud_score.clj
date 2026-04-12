@@ -1,4 +1,4 @@
-(ns rinha-de-backend-2026-exemplo.authorization
+(ns rinha-de-backend-2026-exemplo.fraud-score
   (:require
    [clojure.data.json :as json]
    [clojure.java.io :as io]
@@ -32,11 +32,11 @@
 (def threshold 0.6)
 
 ;; ---------------------------------------------------------------------------
-;; Authorize
+;; Score
 ;; ---------------------------------------------------------------------------
 
-(defn authorize
-  "Authorize a transaction using KNN fraud detection.
+(defn score
+  "Score a transaction for fraud using KNN detection.
    Returns {:approved bool :fraud_score float}."
   [request]
   (let [vector (norm/normalize request normalization-config mcc-risk)]
