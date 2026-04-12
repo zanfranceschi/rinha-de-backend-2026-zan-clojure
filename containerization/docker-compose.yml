@@ -1,0 +1,33 @@
+x-api: &api
+  build:
+    context: ..
+    dockerfile: containerization/Dockerfile
+  environment:
+    PORT: "3000"
+  deploy:
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: "256M"
+
+services:
+  api1:
+    <<: *api
+
+  api2:
+    <<: *api
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "9999:9999"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api1
+      - api2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "128M"
