@@ -1,5 +1,5 @@
 x-api: &api
-  image: zanfranceschi/rinha-de-backend-2026-clojure-exemplo:202604121450
+  image: zanfranceschi/rinha-de-backend-2026-clojure-exemplo:202604122245
   environment:
     PORT: "3000"
   deploy:
