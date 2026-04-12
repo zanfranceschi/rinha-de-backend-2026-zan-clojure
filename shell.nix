@@ -7,7 +7,6 @@ let
     packages = [
         pkgs.leiningen
         pkgs.openjdk25
-        pkgs.k6
 	    pkgs.jq
     ];
 

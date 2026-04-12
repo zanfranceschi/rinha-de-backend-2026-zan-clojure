@@ -1,45 +1,87 @@
-# Rinha de Backend 2026 — Exemplo em Clojure
+# Rinha de Backend 2026 — Clojure Example
 
-Exemplo de submissao para a [Rinha de Backend 2026](https://github.com/zanfranceschi/rinha-de-backend-2026) — Fraud Detection Engine.
+Example submission for [Rinha de Backend 2026](https://github.com/zanfranceschi/rinha-de-backend-2026) — KNN Fraud Detection.
 
-## Como rodar
+## Running locally
+
+Requires Java 24 and [Leiningen](https://leiningen.org/).
 
 ```bash
-docker compose up --build
+lein run
 ```
 
-A API estara disponivel em `http://localhost:9999/fraud-score`.
+The API will be available at `http://localhost:3000`.
 
-## Exemplo de requisicao
+## Running with Docker
 
+```bash
+docker compose -f containerization/docker-compose.yml up --build
+```
+
+This starts 2 API instances behind an Nginx load balancer at `http://localhost:9999`.
+
+## Running tests
+
+Unit tests:
+```bash
+lein test
+```
+
+Load test (requires Docker running and [k6](https://k6.io/)):
+```bash
+./run-test.sh --build
+```
+
+## Request examples
+
+Legitimate transaction:
 ```bash
 curl -X POST http://localhost:9999/fraud-score \
   -H "Content-Type: application/json" \
   -d '{
+    "id": "tx-001",
     "transaction": {
-      "id": "abc-123",
-      "amount": 150.00,
-      "currency": "BRL",
-      "installments": 3,
-      "timestamp": "2026-03-27T14:30:00Z"
+      "amount": 50.0,
+      "installments": 1,
+      "requested_at": "2026-03-16T14:00:00Z"
     },
-    "environment": {
-      "merchant": {"id": "m1", "name": "Loja", "mcc": "5411"},
-      "terminal": {"id": "t1", "latitude": -23.5505, "longitude": -46.6333}
+    "customer": {
+      "avg_amount": 60.0,
+      "tx_count_24h": 2,
+      "known_merchants": ["MERC-001"]
     },
-    "context": {"sale_mcc": "5411"},
-    "last_transaction": null
+    "merchant": {"id": "MERC-001", "mcc": "5411", "avg_amount": 45.0},
+    "terminal": {"is_online": false, "card_present": true, "km_from_home": 2.0},
+    "last_transaction": {
+      "timestamp": "2026-03-16T12:00:00Z",
+      "km_from_current": 1.5
+    }
   }'
+# => {"approved": true, "fraud_score": 0.0}
 ```
 
-## Resposta
-
-Aprovada:
-```json
-{"approved": true}
-```
-
-Negada:
-```json
-{"approved": false, "rules_violated": ["restricted_area", "anomalous_interval"]}
+Fraudulent transaction:
+```bash
+curl -X POST http://localhost:9999/fraud-score \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "tx-fraud",
+    "transaction": {
+      "amount": 9500.0,
+      "installments": 12,
+      "requested_at": "2026-03-14T03:00:00Z"
+    },
+    "customer": {
+      "avg_amount": 200.0,
+      "tx_count_24h": 15,
+      "known_merchants": ["MERC-001"]
+    },
+    "merchant": {"id": "MERC-999", "mcc": "7995", "avg_amount": 8000.0},
+    "terminal": {"is_online": true, "card_present": false, "km_from_home": 500.0},
+    "last_transaction": {
+      "timestamp": "2026-03-14T02:55:00Z",
+      "km_from_current": 300.0
+    }
+  }'
+# => {"approved": false, "fraud_score": 1.0}
 ```

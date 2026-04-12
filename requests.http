@@ -1,66 +1,72 @@
-POST http://localhost:9999/fraud-score
+@port = 3000
+
+### Health check
+GET http://localhost:{{port}}/ready
+
+###
+
+### Fraud score
+POST http://localhost:{{port}}/fraud-score
 Content-Type: application/json
 
 {
+    "id": "tx-001",
     "transaction": {
-        "id": "3fd455a5-e78f-4951-a5c9-254c4cd394ef",
-        "amount": 150.00,
-        "currency": "BRL",
-        "installments": 3,
-        "timestamp": "2026-03-27T14:30:00Z"
+        "amount": 50.0,
+        "installments": 1,
+        "requested_at": "2026-03-16T14:00:00Z"
     },
-    "environment": {
-        "merchant": {
-            "id": "MERC-001",
-            "name": "Lojas Mel",
-            "mcc": "5411"
-        },
-        "terminal": {
-            "id": "c736ab68-87f9-4a80-9ded-043324950b59",
-            "latitude": -23.5505,
-            "longitude": -46.6333
-        }
+    "customer": {
+        "avg_amount": 60.0,
+        "tx_count_24h": 2,
+        "known_merchants": ["MERC-001"]
     },
-    "context": {
-        "sale_mcc": "5411"
+    "merchant": {
+        "id": "MERC-001",
+        "mcc": "5411",
+        "avg_amount": 45.0
+    },
+    "terminal": {
+        "is_online": false,
+        "card_present": true,
+        "km_from_home": 2.0
     },
     "last_transaction": {
-        "amount": 50.00,
-        "timestamp": "2026-03-27T14:20:00Z",
-        "terminal": {
-            "latitude": -23.5600,
-            "longitude": -46.6400
-        }
+        "timestamp": "2026-03-16T12:00:00Z",
+        "km_from_current": 1.5
     }
 }
 
 ###
 
-POST http://localhost:9999/fraud-score
+### Fraud score (fraudulent)
+POST http://localhost:{{port}}/fraud-score
 Content-Type: application/json
 
 {
+    "id": "tx-fraud",
     "transaction": {
-        "id": "b2c3d4e5-f6a7-8901-b234-567890abcdef",
-        "amount": 10.00,
-        "currency": "BRL",
-        "installments": 1,
-        "timestamp": "2026-03-27T14:30:00Z"
+        "amount": 9500.0,
+        "installments": 12,
+        "requested_at": "2026-03-14T03:00:00Z"
     },
-    "environment": {
-        "merchant": {
-            "id": "MERC-002",
-            "name": "Farmacia Central",
-            "mcc": "5411"
-        },
-        "terminal": {
-            "id": "d847bc79-98g0-5ba1-0eed-154435061c60",
-            "latitude": 0.0,
-            "longitude": 0.0
-        }
+    "customer": {
+        "avg_amount": 200.0,
+        "tx_count_24h": 15,
+        "known_merchants": ["MERC-001"]
     },
-    "context": {
-        "sale_mcc": "5411"
+    "merchant": {
+        "id": "MERC-999",
+        "mcc": "7995",
+        "avg_amount": 8000.0
     },
-    "last_transaction": null
+    "terminal": {
+        "is_online": true,
+        "card_present": false,
+        "km_from_home": 500.0
+    },
+    "last_transaction": {
+        "timestamp": "2026-03-14T02:55:00Z",
+        "km_from_current": 300.0
+    }
 }

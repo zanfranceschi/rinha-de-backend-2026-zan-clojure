@@ -1,5 +1,7 @@
 x-api: &api
-  build: .
+  build:
+    context: ..
+    dockerfile: containerization/Dockerfile
   environment:
     PORT: "3000"
   deploy:
