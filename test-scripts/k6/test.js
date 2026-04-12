@@ -29,14 +29,12 @@ export const options = {
             stages: [
                 { duration: '10s', target: 10 },
                 { duration: '10s', target: 50 },
-                { duration: '15s', target: 350 },
+                { duration: '20s', target: 350 },
                 { duration: '15s', target: 650 },
             ],
         },
     },
 };
-
-import { estimatedRequests } from './estimated-requests.js';
 
 export function setup() {
     console.log(
