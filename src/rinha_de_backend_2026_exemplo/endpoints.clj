@@ -19,7 +19,7 @@
       {:status 200
        :body   (fraud-score/score-alt payload)}))
 
-  (GET "/health" []
+  (GET "/ready" []
     {:status 200
      :body   {:status "ok"}})
 

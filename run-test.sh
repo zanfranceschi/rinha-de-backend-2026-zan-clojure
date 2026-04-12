@@ -10,7 +10,7 @@ echo "Starting API..."
 docker compose up $BUILD_FLAG -d
 
 echo "Waiting for API to be ready..."
-until curl -sf http://localhost:9999/health > /dev/null 2>&1; do
+until curl -sf http://localhost:9999/ready > /dev/null 2>&1; do
   sleep 1
 done
 echo "API is ready!"
