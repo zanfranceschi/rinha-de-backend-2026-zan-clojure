@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+BUILD_FLAG=""
+if [[ "${1:-}" == "--build" ]]; then
+  BUILD_FLAG="--build"
+fi
+
 echo "Starting API..."
-docker compose up --build -d
+docker compose up $BUILD_FLAG -d
 
 echo "Waiting for API to be ready..."
 until curl -sf http://localhost:9999/health > /dev/null 2>&1; do

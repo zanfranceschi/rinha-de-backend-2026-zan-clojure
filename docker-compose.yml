@@ -1,23 +1,19 @@
+x-api: &api
+  build: .
+  environment:
+    PORT: "3000"
+  deploy:
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: "256M"
+
 services:
   api1:
-    build: .
-    environment:
-      PORT: "3000"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: "350M"
+    <<: *api
 
   api2:
-    build: .
-    environment:
-      PORT: "3000"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: "350M"
+    <<: *api
 
   nginx:
     image: nginx:alpine

@@ -25,19 +25,26 @@ export const options = {
             timeUnit: '1s',
             preAllocatedVUs: 50,
             maxVUs: 100,
-            gracefulStop: '20s',
+            gracefulStop: '10s',
             stages: [
-                { duration: '05s', target: 10 },
+                { duration: '10s', target: 10 },
                 { duration: '10s', target: 50 },
-                { duration: '20s', target: 300 },
-                { duration: '30s', target: 600 },
+                { duration: '15s', target: 350 },
+                { duration: '15s', target: 650 },
             ],
         },
     },
 };
 
+import { estimatedRequests } from './estimated-requests.js';
+
 export function setup() {
-    console.log(`Dataset: ${expectedStats.total} entries, ${expectedStats.fraud_count} fraud (${expectedStats.fraud_rate}%), ${expectedStats.legit_count} legit (${expectedStats.legit_rate}%), edge cases: ${expectedStats.edge_case_rate}%`);
+    console.log(
+        `Dataset: ${expectedStats.total} entries, `
+        + `${expectedStats.fraud_count} fraud (${expectedStats.fraud_rate}%), `
+        + `${expectedStats.legit_count} legit (${expectedStats.legit_rate}%), `
+        + `edge cases: ${expectedStats.edge_case_rate}%`
+    );
 }
 
 export default function () {
