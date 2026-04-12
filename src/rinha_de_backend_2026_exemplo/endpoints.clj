@@ -10,10 +10,14 @@
 
 (defroutes routes
   (POST "/fraud-score" req
-    (let [payload (:body req)
-          result  (fraud-score/score payload)]
+    (let [payload (:body req)]
       {:status 200
-       :body   result}))
+       :body   (fraud-score/score payload)}))
+
+  (POST "/fraud-score-alt" req
+    (let [payload (:body req)]
+      {:status 200
+       :body   (fraud-score/score-alt payload)}))
 
   (GET "/health" []
     {:status 200

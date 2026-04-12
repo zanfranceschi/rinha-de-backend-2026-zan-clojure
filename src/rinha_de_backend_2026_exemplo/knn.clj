@@ -1,46 +1,28 @@
 (ns rinha-de-backend-2026-exemplo.knn
-  (:import [smile.math.distance Distance]
+  (:import [smile.math MathEx]
+           [smile.math.distance Distance EuclideanDistance]
            [smile.neighbor LinearSearch]))
 
 (def cosine-dist
-  "Cosine distance as a Smile Distance implementation."
+  "Cosine distance via Smile's MathEx/cosine similarity."
   (reify Distance
     (d [_ a b]
-      (let [^doubles a a
-            ^doubles b b
-            n          (alength a)]
-        (loop [i   (int 0)
-               dot 0.0
-               ma  0.0
-               mb  0.0]
-          (if (< i n)
-            (let [ai (aget a i)
-                  bi (aget b i)]
-              (recur (unchecked-inc-int i)
-                     (+ dot (* ai bi))
-                     (+ ma (* ai ai))
-                     (+ mb (* bi bi))))
-            (let [mag-a (Math/sqrt ma)
-                  mag-b (Math/sqrt mb)]
-              (if (or (== mag-a 0.0) (== mag-b 0.0))
-                1.0
-                (- 1.0 (/ dot (* mag-a mag-b)))))))))))
+      (- 1.0 (MathEx/cosine ^doubles a ^doubles b)))))
 
-(defn cosine-distance
-  "Cosine distance between two vectors."
-  [a b]
-  (.d cosine-dist (double-array a) (double-array b)))
+(def euclidean-dist (EuclideanDistance.))
 
 (defn build-search
   "Build a LinearSearch index from reference vectors.
    refs: seq of {:vector [...] :label \"fraud\"|\"legit\"}
+   dist: a Smile Distance implementation (default: cosine-dist)
    Returns {:search LinearSearch :labels [string]}"
-  [refs]
-  (let [labels (mapv :label refs)
-        matrix (into-array (Class/forName "[D")
-                           (map #(double-array (:vector %)) refs))]
-    {:search (LinearSearch/of matrix cosine-dist)
-     :labels labels}))
+  ([refs] (build-search refs cosine-dist))
+  ([refs dist]
+   (let [labels (mapv :label refs)
+         matrix (into-array (Class/forName "[D")
+                            (map #(double-array (:vector %)) refs))]
+     {:search (LinearSearch/of matrix dist)
+      :labels labels})))
 
 (defn classify
   "Classify a vector using KNN.

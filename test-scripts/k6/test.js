@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { SharedArray } from 'k6/data';
-import { Counter, Trend } from 'k6/metrics';
+import { Counter } from 'k6/metrics';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 import exec from 'k6/execution';
 
@@ -15,8 +15,6 @@ const testData = new SharedArray('test-data', function () {
 const totalSent = new Counter('total_sent');
 const fraudCount = new Counter('fraud_count');
 const legitCount = new Counter('legit_count');
-const fraudScores = new Trend('fraud_scores');
-const legitScores = new Trend('legit_scores');
 
 export const options = {
     summaryTrendStats: ['min', 'med', 'max', 'p(90)', 'p(99)'],
@@ -39,7 +37,7 @@ export const options = {
 };
 
 export function setup() {
-    console.log(`Dataset: ${expectedStats.total} entries, ${expectedStats.fraud_count} fraud (${expectedStats.fraud_percentage}%), ${expectedStats.legit_count} legit (${expectedStats.legit_percentage}%), edge cases: ${expectedStats.edge_case_percentage}%`);
+    console.log(`Dataset: ${expectedStats.total} entries, ${expectedStats.fraud_count} fraud (${expectedStats.fraud_rate}%), ${expectedStats.legit_count} legit (${expectedStats.legit_rate}%), edge cases: ${expectedStats.edge_case_rate}%`);
 }
 
 export default function () {
@@ -60,10 +58,8 @@ export default function () {
         const body = JSON.parse(res.body);
         if (body.approved) {
             legitCount.add(1);
-            legitScores.add(body.fraud_score);
         } else {
             fraudCount.add(1);
-            fraudScores.add(body.fraud_score);
         }
     }
 }
@@ -74,22 +70,17 @@ export function handleSummary(data) {
     const sent = data.metrics.total_sent ? data.metrics.total_sent.values.count : 0;
     const fc = data.metrics.fraud_count ? data.metrics.fraud_count.values.count : 0;
     const lc = data.metrics.legit_count ? data.metrics.legit_count.values.count : 0;
-    const fs = data.metrics.fraud_scores ? data.metrics.fraud_scores.values : {};
-    const ls = data.metrics.legit_scores ? data.metrics.legit_scores.values : {};
-
     const httpReqs = data.metrics.http_reqs ? data.metrics.http_reqs.values.count : 0;
     const httpFailed = data.metrics.http_req_failed ? data.metrics.http_req_failed.values : {};
 
     const result = {
         expected: expectedStats,
         actual: {
-            fraud_percentage: sent > 0 ? +(fc / sent * 100).toFixed(2) : 0,
+            fraud_rate: sent > 0 ? +(fc / sent).toFixed(4) : 0,
             legit_count: lc,
             fraud_count: fc,
             total_requests: sent,
-            legit_percentage: sent > 0 ? +(lc / sent * 100).toFixed(2) : 0,
-            fraud_avg_score: fs.avg || 0,
-            legit_avg_score: ls.avg || 0,
+            legit_rate: sent > 0 ? +(lc / sent).toFixed(4) : 0,
             errors: {
                 http_req_failed_rate: httpFailed.rate || 0,
                 http_req_failed_count: httpFailed.passes || 0,

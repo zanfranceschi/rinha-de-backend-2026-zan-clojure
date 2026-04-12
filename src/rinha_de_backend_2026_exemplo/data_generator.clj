@@ -46,10 +46,6 @@
 ;; Merchant pools
 ;; ---------------------------------------------------------------------------
 
-(def merchant-pool
-  ["MERC-001" "MERC-002" "MERC-003" "MERC-004" "MERC-005"
-   "MERC-010" "MERC-011" "MERC-012" "MERC-013" "MERC-014"])
-
 (def mcc-pool (vec (keys mcc-risk)))
 
 ;; ---------------------------------------------------------------------------
@@ -221,26 +217,21 @@
 (defn compute-stats
   "Compute summary statistics from generated test payloads."
   [payloads]
-  (let [responses    (map #(-> % :info :expected_response) payloads)
-        fraud        (filter #(false? (:approved %)) responses)
-        legit        (filter #(true? (:approved %)) responses)
-        fraud-count  (count fraud)
-        legit-count  (count legit)
-        total        (count payloads)
-        avg-fn       (fn [xs] (if (seq xs)
-                                (/ (reduce + (map :fraud_score xs)) (count xs))
-                                0.0))
-        edge-count   (count (filter #(= threshold (:fraud_score %)) responses))
-        edge-pct     (if (pos? total) (* 100.0 (/ edge-count total)) 0.0)]
-    {:total              total
-     :fraud_count        fraud-count
-     :legit_count        legit-count
-     :fraud_percentage   (round4 (if (pos? total) (* 100.0 (/ fraud-count total)) 0.0))
-     :legit_percentage   (round4 (if (pos? total) (* 100.0 (/ legit-count total)) 0.0))
-     :fraud_avg_score    (round4 (avg-fn fraud))
-     :legit_avg_score    (round4 (avg-fn legit))
-     :edge_case_count    edge-count
-     :edge_case_percentage (round4 edge-pct)}))
+  (let [responses   (map #(-> % :info :expected_response) payloads)
+        fraud       (filter #(false? (:approved %)) responses)
+        legit       (filter #(true? (:approved %)) responses)
+        fraud-count (count fraud)
+        legit-count (count legit)
+        total       (count payloads)
+        edge-count  (count (filter #(= threshold (:fraud_score %)) responses))
+        edge-rate   (if (pos? total) (/ edge-count total) 0.0)]
+    {:total           total
+     :fraud_count     fraud-count
+     :legit_count     legit-count
+     :fraud_rate      (round4 (if (pos? total) (/ fraud-count total) 0.0))
+     :legit_rate      (round4 (if (pos? total) (/ legit-count total) 0.0))
+     :edge_case_count edge-count
+     :edge_case_rate  (round4 edge-rate)}))
 
 ;; ---------------------------------------------------------------------------
 ;; Generate all — single entry point

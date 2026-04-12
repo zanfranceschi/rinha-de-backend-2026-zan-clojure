@@ -3,25 +3,6 @@
    [clojure.test :refer [deftest is testing]]
    [rinha-de-backend-2026-exemplo.knn :as knn]))
 
-;; cosine-distance tests
-
-(deftest cosine-distance-identical-vectors
-  (testing "Identical vectors have distance 0.0"
-    (is (< (knn/cosine-distance [1.0 0.0 0.0] [1.0 0.0 0.0]) 1e-9))))
-
-(deftest cosine-distance-orthogonal-vectors
-  (testing "Orthogonal vectors have distance 1.0"
-    (is (< (Math/abs (- 1.0 (knn/cosine-distance [1.0 0.0] [0.0 1.0]))) 1e-9))))
-
-(deftest cosine-distance-opposite-vectors
-  (testing "Opposite vectors have distance 2.0"
-    (is (< (Math/abs (- 2.0 (knn/cosine-distance [1.0 0.0] [-1.0 0.0]))) 1e-9))))
-
-(deftest cosine-distance-similar-vectors
-  (testing "Similar vectors have small distance"
-    (let [d (knn/cosine-distance [0.9 0.8 0.7] [0.85 0.75 0.65])]
-      (is (< d 0.01)))))
-
 ;; classify tests
 
 (def test-references

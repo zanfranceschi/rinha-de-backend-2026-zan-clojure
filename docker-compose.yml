@@ -7,7 +7,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "256M"
+          memory: "350M"
 
   api2:
     build: .
@@ -17,7 +17,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "256M"
+          memory: "350M"
 
   nginx:
     image: nginx:alpine
