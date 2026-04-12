@@ -1,7 +1,5 @@
 x-api: &api
-  build:
-    context: ..
-    dockerfile: containerization/Dockerfile
+  image: zanfranceschi/rinha-de-backend-2026-clojure-exemplo:202604122245
   environment:
     PORT: "3000"
   deploy:

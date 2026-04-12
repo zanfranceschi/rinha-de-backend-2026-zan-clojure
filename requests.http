@@ -1,4 +1,4 @@
-@port = 3000
+@port = 9999
 
 ### Health check
 GET http://localhost:{{port}}/ready

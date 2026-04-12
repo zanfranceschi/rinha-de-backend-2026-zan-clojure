@@ -14,11 +14,25 @@ The API will be available at `http://localhost:3000`.
 
 ## Running with Docker
 
+Build and tag the image locally:
 ```bash
-docker compose -f containerization/docker-compose.yml up --build
+cd containerization
+./build-and-publish.sh
+```
+
+Then start the services:
+```bash
+docker compose -f containerization/docker-compose.yml up
 ```
 
 This starts 2 API instances behind an Nginx load balancer at `http://localhost:9999`.
+
+## Converting references
+
+If you update `resources/references.json`, regenerate the binary file:
+```bash
+lein convert-references
+```
 
 ## Running tests
 

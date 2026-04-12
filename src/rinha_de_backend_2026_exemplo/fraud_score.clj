@@ -3,7 +3,8 @@
    [clojure.data.json :as json]
    [clojure.java.io :as io]
    [rinha-de-backend-2026-exemplo.knn :as knn]
-   [rinha-de-backend-2026-exemplo.normalization :as norm]))
+   [rinha-de-backend-2026-exemplo.normalization :as norm])
+  (:import [java.io DataInputStream BufferedInputStream]))
 
 ;; ---------------------------------------------------------------------------
 ;; Load resource files at startup
@@ -16,11 +17,16 @@
   (json/read-str (slurp (io/resource "mcc_risk.json"))))
 
 (def references
-  (let [raw (json/read-str (slurp (io/resource "references.json")) :key-fn keyword)]
-    (mapv (fn [ref]
-            {:vector (mapv double (:vector ref))
-             :label  (:label ref)})
-          raw)))
+  (with-open [dis (DataInputStream. (BufferedInputStream. (.openStream (io/resource "references.bin"))))]
+    (let [count (.readInt dis)
+          dim   (.readInt dis)]
+      (mapv (fn [_]
+              (let [label (if (== 1 (.readUnsignedByte dis)) "fraud" "legit")
+                    vec   (double-array dim)]
+                (dotimes [i dim]
+                  (aset vec i (.readDouble dis)))
+                {:vector vec :label label}))
+            (range count)))))
 
 (def cosine-search-index (knn/build-search references knn/cosine-dist))
 (def euclidean-search-index (knn/build-search references knn/euclidean-dist))

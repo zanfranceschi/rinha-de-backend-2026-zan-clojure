@@ -20,7 +20,11 @@
   ([refs dist]
    (let [labels (mapv :label refs)
          matrix (into-array (Class/forName "[D")
-                            (map #(double-array (:vector %)) refs))]
+                            (map #(let [v (:vector %)]
+                                    (if (instance? (Class/forName "[D") v)
+                                      v
+                                      (double-array v)))
+                                 refs))]
      {:search (LinearSearch/of matrix dist)
       :labels labels})))
 

@@ -19,5 +19,6 @@
                                org.apache.commons/commons-csv]]]
   :main ^:skip-aot rinha-de-backend-2026-exemplo.endpoints
   :target-path "target/%s"
+  :aliases {"convert-references" ["run" "-m" "rinha-de-backend-2026-exemplo.convert-references"]}
   :profiles {:uberjar {:aot      [rinha-de-backend-2026-exemplo.endpoints]
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
