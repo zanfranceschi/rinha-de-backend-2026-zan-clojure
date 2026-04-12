@@ -10,8 +10,11 @@
                  [envvar "1.1.2"]
                  [com.taoensso/telemere "1.2.1"]
                  [org.clojure/data.json "2.5.2"]
-                 [com.github.haifengl/smile-core "3.1.1"]]
+                 [com.github.haifengl/smile-core "4.3.0"
+                  :exclusions [org.bytedeco/openblas
+                               org.bytedeco/arpack-ng
+                               org.bytedeco/javacpp]]]
   :main ^:skip-aot rinha-de-backend-2026-exemplo.endpoints
   :target-path "target/%s"
-  :profiles {:uberjar {:aot      :all
+  :profiles {:uberjar {:aot      [rinha-de-backend-2026-exemplo.endpoints]
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
