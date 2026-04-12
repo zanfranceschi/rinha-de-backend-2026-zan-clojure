@@ -2,7 +2,8 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [clojure.data.json :as json]
-   [rinha-de-backend-2026-exemplo.data-generator :as gen]))
+   [rinha-de-backend-2026-exemplo.data-generator :as gen]
+   [rinha-de-backend-2026-exemplo.knn :as knn]))
 
 ;; PRNG helpers
 
@@ -114,47 +115,46 @@
 
 ;; Test payload generation
 
+(def test-refs (gen/generate-reference-dataset 50))
+(def test-search-index (knn/build-search test-refs))
+
 (deftest generate-test-payloads-shape
-  (testing "Test payloads are valid request maps"
-    (let [payloads (gen/generate-test-payloads 50)]
+  (testing "Test payloads have request, info.vector, info.expected_response"
+    (let [payloads (gen/generate-test-payloads 50 test-search-index)]
       (is (= 50 (count payloads)))
       (doseq [p payloads]
-        (is (map? (:transaction p)))
-        (is (map? (:customer p)))
-        (is (map? (:merchant p)))
-        (is (map? (:terminal p)))))))
+        (is (map? (:request p)))
+        (is (map? (:info p)))
+        (is (vector? (-> p :info :vector)))
+        (is (= 14 (count (-> p :info :vector))))
+        (is (map? (-> p :info :expected_response)))
+        (is (contains? (-> p :info :expected_response) :approved))
+        (is (contains? (-> p :info :expected_response) :fraud_score))))))
 
 (deftest generate-test-payloads-deterministic
   (testing "Same size produces same payloads (different seed from references)"
-    (let [p1 (gen/generate-test-payloads 50)
-          p2 (gen/generate-test-payloads 50)]
+    (let [p1 (gen/generate-test-payloads 50 test-search-index)
+          p2 (gen/generate-test-payloads 50 test-search-index)]
       (is (= p1 p2)))))
 
-;; Write functions
+;; generate-all!
 
-(deftest write-reference-dataset-test
-  (testing "write-reference-dataset! writes valid JSON"
-    (let [tmp-file (java.io.File/createTempFile "test-refs" ".json")
-          tmp-path (.getAbsolutePath tmp-file)]
+(deftest generate-all-test
+  (testing "generate-all! writes both files with correct content"
+    (let [refs-file     (java.io.File/createTempFile "test-refs" ".json")
+          payloads-file (java.io.File/createTempFile "test-payloads" ".json")
+          refs-path     (.getAbsolutePath refs-file)
+          payloads-path (.getAbsolutePath payloads-file)]
       (try
-        (gen/write-reference-dataset! 20 tmp-path)
-        (let [content (slurp tmp-path)
-              parsed  (json/read-str content :key-fn keyword)]
-          (is (= 20 (count parsed)))
-          (is (contains? (first parsed) :vector))
-          (is (contains? (first parsed) :label)))
+        (gen/generate-all! 20 20 refs-path payloads-path)
+        (let [refs     (json/read-str (slurp refs-path) :key-fn keyword)
+              output   (json/read-str (slurp payloads-path) :key-fn keyword)
+              stats    (:stats output)
+              entries  (:entries output)]
+          (is (= 20 (count refs)))
+          (is (= 20 (count entries)))
+          (is (= 20 (:total stats)))
+          (is (= (:total stats) (+ (:fraud_count stats) (:legit_count stats)))))
         (finally
-          (.delete tmp-file))))))
-
-(deftest write-test-payloads-test
-  (testing "write-test-payloads! writes valid JSON"
-    (let [tmp-file (java.io.File/createTempFile "test-payloads" ".json")
-          tmp-path (.getAbsolutePath tmp-file)]
-      (try
-        (gen/write-test-payloads! 20 tmp-path)
-        (let [content (slurp tmp-path)
-              parsed  (json/read-str content :key-fn keyword)]
-          (is (= 20 (count parsed)))
-          (is (contains? (first parsed) :transaction)))
-        (finally
-          (.delete tmp-file))))))
+          (.delete refs-file)
+          (.delete payloads-file))))))

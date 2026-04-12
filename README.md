@@ -8,12 +8,12 @@ Exemplo de submissao para a [Rinha de Backend 2026](https://github.com/zanfrance
 docker compose up --build
 ```
 
-A API estara disponivel em `http://localhost:9999/authorizations`.
+A API estara disponivel em `http://localhost:9999/fraud-score`.
 
 ## Exemplo de requisicao
 
 ```bash
-curl -X POST http://localhost:9999/authorizations \
+curl -X POST http://localhost:9999/fraud-score \
   -H "Content-Type: application/json" \
   -d '{
     "transaction": {

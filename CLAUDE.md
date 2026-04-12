@@ -20,7 +20,7 @@ Dev environment: `nix-shell` (loads lein, JDK, k6, jq).
 ## Architecture
 
 ```
-POST /authorizations → Ring/Compojure → normalize → KNN (cosine distance) → {approved, fraud_score}
+POST /fraud-score → Ring/Compojure → normalize → KNN (cosine distance) → {approved, fraud_score}
 ```
 
 - **No database.** Reference files (`resources/*.json`) are loaded once at startup.

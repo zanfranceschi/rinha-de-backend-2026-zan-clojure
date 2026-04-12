@@ -1,5 +1,5 @@
 (ns rinha-de-backend-2026-exemplo.normalization
-  (:import [java.time Instant]
+  (:import [java.time Instant ZoneOffset]
            [java.time.temporal ChronoUnit ChronoField]))
 
 (defn- clamp [v]
@@ -18,7 +18,7 @@
 
         ;; Parse timestamp
         requested-at   (Instant/parse (:requested_at tx))
-        zdt            (.atZone requested-at (java.time.ZoneOffset/UTC))
+        zdt            (.atZone requested-at ZoneOffset/UTC)
 
         ;; 1. amount
         amount         (clamp (/ (double (:amount tx))

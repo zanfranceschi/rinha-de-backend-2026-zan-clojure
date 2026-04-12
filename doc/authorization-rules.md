@@ -6,7 +6,7 @@ See `docs/superpowers/specs/2026-04-11-rinha-2026-knn-fraud-detection-design.md`
 
 ## Quick Summary
 
-- `POST /authorizations` receives a transaction request
+- `POST /fraud-score` receives a transaction request
 - The request is normalized into a 14-dimension vector (0.0 to 1.0)
 - The vector is compared against a reference dataset using cosine distance
 - The 5 nearest neighbors vote: fraud_score = fraud_count / 5

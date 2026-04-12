@@ -1,5 +1,5 @@
 (ns rinha-de-backend-2026-exemplo.endpoints
-  (:require [compojure.core :refer [defroutes POST]]
+  (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
             [envvar.core :as envvar :refer [env]]
             [ring.adapter.jetty :as jetty]
@@ -9,11 +9,15 @@
   (:gen-class))
 
 (defroutes routes
-  (POST "/authorizations" req
+  (POST "/fraud-score" req
     (let [payload (:body req)
           result  (authorization/authorize payload)]
       {:status 200
        :body   result}))
+
+  (GET "/health" []
+    {:status 200
+     :body   {:status "ok"}})
 
   (route/not-found {:status  404
                     :body    {:error "not found"}}))

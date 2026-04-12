@@ -9,7 +9,7 @@
 
 (defn- post-authorization [payload]
   (endpoints/app {:request-method :post
-                  :uri            "/authorizations"
+                  :uri            "/fraud-score"
                   :headers        {"content-type" "application/json"}
                   :body           (json-body-stream payload)}))
 

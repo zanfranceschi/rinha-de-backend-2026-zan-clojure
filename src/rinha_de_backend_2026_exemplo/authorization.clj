@@ -22,6 +22,8 @@
              :label  (:label ref)})
           raw)))
 
+(def search-index (knn/build-search references))
+
 ;; ---------------------------------------------------------------------------
 ;; KNN parameters
 ;; ---------------------------------------------------------------------------
@@ -38,4 +40,4 @@
    Returns {:approved bool :fraud_score float}."
   [request]
   (let [vector (norm/normalize request normalization-config mcc-risk)]
-    (knn/classify vector references k threshold)))
+    (knn/classify vector search-index k threshold)))
