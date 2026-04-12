@@ -8,8 +8,11 @@
     (d [_ a b]
       (let [^doubles a a
             ^doubles b b
-            n (alength a)]
-        (loop [i (int 0) dot (double 0.0) ma (double 0.0) mb (double 0.0)]
+            n          (alength a)]
+        (loop [i   (int 0)
+               dot 0.0
+               ma  0.0
+               mb  0.0]
           (if (< i n)
             (let [ai (aget a i)
                   bi (aget b i)]
@@ -46,9 +49,9 @@
    - k: number of neighbors
    - threshold: fraud_score >= threshold means not approved"
   [vector search-index k threshold]
-  (let [query      (double-array vector)
-        neighbors  (.search (:search search-index) query k)
-        labels     (:labels search-index)
+  (let [query       (double-array vector)
+        neighbors   (.search (:search search-index) query k)
+        labels      (:labels search-index)
         fraud-count (count (filter #(= "fraud" (nth labels (.index %))) neighbors))
         fraud-score (double (/ fraud-count k))]
     {:approved    (< fraud-score threshold)
