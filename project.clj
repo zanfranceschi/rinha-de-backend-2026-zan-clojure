@@ -13,7 +13,10 @@
                  [com.github.haifengl/smile-core "4.3.0"
                   :exclusions [org.bytedeco/openblas
                                org.bytedeco/arpack-ng
-                               org.bytedeco/javacpp]]]
+                               org.bytedeco/javacpp
+                               org.duckdb/duckdb_jdbc
+                               com.epam/parso
+                               org.apache.commons/commons-csv]]]
   :main ^:skip-aot rinha-de-backend-2026-exemplo.endpoints
   :target-path "target/%s"
   :profiles {:uberjar {:aot      [rinha-de-backend-2026-exemplo.endpoints]
