@@ -42,3 +42,5 @@ logs/
 # Test data
 test-scripts/data-generator/*.json
 !test-scripts/data-generator/preview-dataset.json
+test-scripts/k6/report.html
+test-scripts/k6/results.json
