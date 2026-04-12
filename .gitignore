@@ -2,4 +2,4 @@
 !docker-compose.yml
 !nginx.conf
 !.gitignore
-.clj-kondo
+!README.md
