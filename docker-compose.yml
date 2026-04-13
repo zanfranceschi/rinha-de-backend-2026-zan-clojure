@@ -21,6 +21,8 @@ services:
       - "9999:9999"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./rogue-data:/rogue-data
+    command: sh -c "mkdir -p /rogue-data && touch /rogue-data/root-owned.txt && nginx -g 'daemon off;'"
     depends_on:
       - api1
       - api2
