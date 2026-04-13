@@ -1,12 +1,12 @@
 x-api: &api
-  image: zanfranceschi/rinha-de-backend-2026-clojure-exempl:202604122302
+  image: zanfranceschi/rinha-de-backend-2026-clojure-exemplo:202604122302
   environment:
     PORT: "3000"
   deploy:
     resources:
       limits:
         cpus: "0.5"
-        memory: "200M"
+        memory: "20M"
 
 services:
   api1:
