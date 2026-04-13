@@ -6,7 +6,7 @@ x-api: &api
     resources:
       limits:
         cpus: "0.2"
-        memory: "5M"
+        memory: "6M"
 
 services:
   api1:
