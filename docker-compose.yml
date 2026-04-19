@@ -3,17 +3,17 @@ x-api: &api
   environment:
     PORT: "3000"
     JAVA_TOOL_OPTIONS: >-
-      -Xmx96m
-      -Xms96m
-      -XX:MaxMetaspaceSize=96m
+      -Xmx110m
+      -Xms110m
+      -XX:MaxMetaspaceSize=60m
       -XX:+UseSerialGC
       -Xss256k
       -XX:TieredStopAtLevel=1
   deploy:
     resources:
       limits:
-        cpus: "0.4"
-        memory: "160M"
+        cpus: "0.45"
+        memory: "170M"
 
 services:
   api1:
@@ -34,5 +34,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.2"
-          memory: "30M"
+          cpus: "0.1"
+          memory: "10M"
