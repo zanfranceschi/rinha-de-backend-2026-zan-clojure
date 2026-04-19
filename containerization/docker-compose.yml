@@ -3,12 +3,11 @@ x-api: &api
   environment:
     PORT: "3000"
     JAVA_TOOL_OPTIONS: >-
-      -Xmx100m
-      -Xms100m
-      -XX:MaxMetaspaceSize=65m
+      -Xmx80m
+      -Xms80m
+      -XX:MaxMetaspaceSize=50m
       -XX:+UseSerialGC
       -Xss256k
-      -XX:TieredStopAtLevel=1
   deploy:
     resources:
       limits:

@@ -18,15 +18,17 @@
 
 (def references
   (with-open [dis (DataInputStream. (BufferedInputStream. (.openStream (io/resource "references.bin"))))]
-    (let [count (.readInt dis)
-          dim   (.readInt dis)]
-      (mapv (fn [_]
-              (let [label (if (== 1 (.readUnsignedByte dis)) "fraud" "legit")
-                    vec   (double-array dim)]
-                (dotimes [i dim]
-                  (aset vec i (.readDouble dis)))
-                {:vector vec :label label}))
-            (range count)))))
+    (let [total (.readInt dis)
+          dim   (.readInt dis)
+          refs  (mapv (fn [_]
+                        (let [label (if (== 1 (.readUnsignedByte dis)) "fraud" "legit")
+                              vec   (double-array dim)]
+                          (dotimes [i dim]
+                            (aset vec i (.readDouble dis)))
+                          {:vector vec
+                           :label  label}))
+                      (range total))]
+      refs)))
 
 (def search-index (knn/build-search references))
 
@@ -47,3 +49,14 @@
   [request]
   (let [vector (norm/normalize request normalization-config mcc-risk)]
     (knn/classify vector search-index k threshold)))
+
+;; ---------------------------------------------------------------------------
+;; JIT warm-up. Runs synthetic classifications so HotSpot promotes the KNN
+;; hot path (squared-distance, classify, PriorityQueue ops) before the server
+;; accepts real traffic. Blocks server startup via the ns-load chain.
+;; ---------------------------------------------------------------------------
+
+(let [dim (alength ^doubles (:vector (first references)))]
+  (dotimes [_ 2000]
+    (knn/classify (vec (repeatedly dim #(rand)))
+                  search-index k threshold)))
