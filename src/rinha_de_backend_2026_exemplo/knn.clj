@@ -1,13 +1,18 @@
-(ns rinha-de-backend-2026-exemplo.knn
-  (:import [smile.math.distance EuclideanDistance]
-           [smile.neighbor LinearSearch]))
+(ns rinha-de-backend-2026-exemplo.knn)
 
-(def euclidean-dist (EuclideanDistance.))
+(defn- euclidean-distance
+  ^double [^doubles x ^doubles y]
+  (let [n (alength x)]
+    (loop [i 0 sum 0.0]
+      (if (< i n)
+        (let [d (- (aget x i) (aget y i))]
+          (recur (inc i) (+ sum (* d d))))
+        (Math/sqrt sum)))))
 
 (defn build-search
-  "Build a LinearSearch index from reference vectors.
+  "Build a search index from reference vectors.
    refs: seq of {:vector [...] :label \"fraud\"|\"legit\"}
-   Returns {:search LinearSearch :labels [string]}"
+   Returns {:matrix [[D :labels [string]}"
   [refs]
   (let [labels (mapv :label refs)
         matrix (into-array (Class/forName "[D")
@@ -16,7 +21,7 @@
                                      v
                                      (double-array v)))
                                 refs))]
-    {:search (LinearSearch/of matrix euclidean-dist)
+    {:matrix matrix
      :labels labels}))
 
 (defn classify
@@ -26,10 +31,15 @@
    - k: number of neighbors
    - threshold: fraud_score >= threshold means not approved"
   [vector search-index k threshold]
-  (let [query       (double-array vector)
-        neighbors   (.search (:search search-index) query k)
-        labels      (:labels search-index)
-        fraud-count (count (filter #(= "fraud" (nth labels (.index %))) neighbors))
-        fraud-score (double (/ fraud-count k))]
+  (let [query         (double-array vector)
+        ^"[[D" matrix (:matrix search-index)
+        labels        (:labels search-index)
+        n             (alength matrix)
+        top-k         (->> (range n)
+                           (map (fn [i] [i (euclidean-distance query (aget matrix i))]))
+                           (sort-by second)
+                           (take k))
+        fraud-count   (count (filter #(= "fraud" (nth labels (first %))) top-k))
+        fraud-score   (double (/ fraud-count k))]
     {:approved    (< fraud-score threshold)
      :fraud_score fraud-score}))

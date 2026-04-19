@@ -9,16 +9,10 @@
                  [compojure "1.7.2"]
                  [envvar "1.1.2"]
                  [com.taoensso/telemere "1.2.1"]
-                 [org.clojure/data.json "2.5.2"]
-                 [com.github.haifengl/smile-core "4.3.0"
-                  :exclusions [org.bytedeco/openblas
-                               org.bytedeco/arpack-ng
-                               org.bytedeco/javacpp
-                               org.duckdb/duckdb_jdbc
-                               com.epam/parso
-                               org.apache.commons/commons-csv]]]
+                 [com.taoensso/slf4j-telemere "1.0.0-beta21"]
+                 [org.clojure/data.json "2.5.2"]]
   :main ^:skip-aot rinha-de-backend-2026-exemplo.endpoints
   :target-path "target/%s"
   :aliases {"convert-references" ["run" "-m" "rinha-de-backend-2026-exemplo.convert-references"]}
-  :profiles {:uberjar {:aot      [rinha-de-backend-2026-exemplo.endpoints]
+  :profiles {:uberjar {:aot      :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
