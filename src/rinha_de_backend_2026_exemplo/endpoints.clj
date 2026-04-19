@@ -14,11 +14,6 @@
       {:status 200
        :body   (fraud-score/score payload)}))
 
-  (POST "/fraud-score-alt" req
-    (let [payload (:body req)]
-      {:status 200
-       :body   (fraud-score/score-alt payload)}))
-
   (GET "/ready" []
     {:status 200
      :body   {:status "ok"}})

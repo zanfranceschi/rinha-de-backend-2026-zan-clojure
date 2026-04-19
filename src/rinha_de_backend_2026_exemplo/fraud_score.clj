@@ -28,8 +28,7 @@
                 {:vector vec :label label}))
             (range count)))))
 
-(def cosine-search-index (knn/build-search references knn/cosine-dist))
-(def euclidean-search-index (knn/build-search references knn/euclidean-dist))
+(def search-index (knn/build-search references))
 
 ;; ---------------------------------------------------------------------------
 ;; KNN parameters
@@ -43,15 +42,8 @@
 ;; ---------------------------------------------------------------------------
 
 (defn score
-  "Score a transaction for fraud using cosine KNN detection.
-   Returns {:approved bool :fraud_score float}."
-  [request]
-  (let [vector (norm/normalize request normalization-config mcc-risk)]
-    (knn/classify vector cosine-search-index k threshold)))
-
-(defn score-alt
   "Score a transaction for fraud using euclidean KNN detection.
    Returns {:approved bool :fraud_score float}."
   [request]
   (let [vector (norm/normalize request normalization-config mcc-risk)]
-    (knn/classify vector euclidean-search-index k threshold)))
+    (knn/classify vector search-index k threshold)))

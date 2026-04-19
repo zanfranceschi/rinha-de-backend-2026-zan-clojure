@@ -45,3 +45,4 @@ test-scripts/data-generator/*.json
 test-scripts/k6/report.html
 test-scripts/k6/results.json
 resources/references.json
+resources/references.bin
