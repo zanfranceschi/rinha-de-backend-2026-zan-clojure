@@ -2,11 +2,18 @@ x-api: &api
   image: zanfranceschi/rinha-de-backend-2026-clojure-exemplo:202604190029
   environment:
     PORT: "3000"
+    JAVA_TOOL_OPTIONS: >-
+      -Xmx96m
+      -Xms96m
+      -XX:MaxMetaspaceSize=96m
+      -XX:+UseSerialGC
+      -Xss256k
+      -XX:TieredStopAtLevel=1
   deploy:
     resources:
       limits:
-        cpus: "0.5"
-        memory: "200M"
+        cpus: "0.4"
+        memory: "160M"
 
 services:
   api1:
@@ -20,14 +27,12 @@ services:
     ports:
       - "9999:9999"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./rogue-data:/rogue-data
-    command: sh -c "mkdir -p /rogue-data && touch /rogue-data/root-owned.txt && nginx -g 'daemon off;'"
+      - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - api1
       - api2
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: "128M"
+          cpus: "0.2"
+          memory: "30M"
