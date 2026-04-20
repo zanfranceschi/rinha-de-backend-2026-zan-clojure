@@ -16,4 +16,4 @@ docker compose up -d
 
 ## Codigo fonte
 
-[github.com/zanfranceschi/rinha-de-backend-2026-exemplo-clojure](https://github.com/zanfranceschi/rinha-de-backend-2026-exemplo-clojure/tree/clojure)
+[github.com/zanfranceschi/rinha-de-backend-2026-zan-clojure](https://github.com/zanfranceschi/rinha-de-backend-2026-zan-clojure/tree/clojure)
