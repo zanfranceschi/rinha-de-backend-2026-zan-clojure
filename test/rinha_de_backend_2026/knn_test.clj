@@ -1,7 +1,7 @@
-(ns rinha-de-backend-2026-exemplo.knn-test
+(ns rinha-de-backend-2026.knn-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [rinha-de-backend-2026-exemplo.knn :as knn]))
+   [rinha-de-backend-2026.knn :as knn]))
 
 ;; classify tests
 

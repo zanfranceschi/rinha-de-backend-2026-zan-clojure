@@ -1,7 +1,7 @@
-(ns rinha-de-backend-2026-exemplo.fraud-score-test
+(ns rinha-de-backend-2026.fraud-score-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [rinha-de-backend-2026-exemplo.fraud-score :as fraud-score]))
+   [rinha-de-backend-2026.fraud-score :as fraud-score]))
 
 (defn legit-request
   "A request that should be classified as legit:

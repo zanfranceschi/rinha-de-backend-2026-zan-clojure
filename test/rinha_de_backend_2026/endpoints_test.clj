@@ -1,7 +1,7 @@
-(ns rinha-de-backend-2026-exemplo.endpoints-test
+(ns rinha-de-backend-2026.endpoints-test
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.data.json :as json]
-            [rinha-de-backend-2026-exemplo.endpoints :as endpoints])
+            [rinha-de-backend-2026.endpoints :as endpoints])
   (:import [java.io ByteArrayInputStream]))
 
 (defn- json-body-stream [m]

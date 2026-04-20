@@ -1,4 +1,4 @@
-(ns rinha-de-backend-2026-exemplo.normalization
+(ns rinha-de-backend-2026.normalization
   (:import [java.time Instant ZoneOffset]
            [java.time.temporal ChronoUnit ChronoField]))
 

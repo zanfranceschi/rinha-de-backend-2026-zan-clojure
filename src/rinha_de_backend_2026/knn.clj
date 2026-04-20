@@ -1,4 +1,4 @@
-(ns rinha-de-backend-2026-exemplo.knn
+(ns rinha-de-backend-2026.knn
   (:import [java.util PriorityQueue Comparator]))
 
 (defn- squared-distance

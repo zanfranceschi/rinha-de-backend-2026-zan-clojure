@@ -1,9 +1,9 @@
-(ns rinha-de-backend-2026-exemplo.fraud-score
+(ns rinha-de-backend-2026.fraud-score
   (:require
    [clojure.data.json :as json]
    [clojure.java.io :as io]
-   [rinha-de-backend-2026-exemplo.knn :as knn]
-   [rinha-de-backend-2026-exemplo.normalization :as norm])
+   [rinha-de-backend-2026.knn :as knn]
+   [rinha-de-backend-2026.normalization :as norm])
   (:import [java.io DataInputStream BufferedInputStream]))
 
 ;; ---------------------------------------------------------------------------

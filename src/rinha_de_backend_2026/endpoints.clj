@@ -1,10 +1,10 @@
-(ns rinha-de-backend-2026-exemplo.endpoints
+(ns rinha-de-backend-2026.endpoints
   (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
             [envvar.core :as envvar :refer [env]]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
-            [rinha-de-backend-2026-exemplo.fraud-score :as fraud-score]
+            [rinha-de-backend-2026.fraud-score :as fraud-score]
             [taoensso.telemere :as tel])
   (:gen-class))
 

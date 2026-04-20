@@ -1,7 +1,7 @@
-(ns rinha-de-backend-2026-exemplo.normalization-test
+(ns rinha-de-backend-2026.normalization-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [rinha-de-backend-2026-exemplo.normalization :as norm]))
+   [rinha-de-backend-2026.normalization :as norm]))
 
 (def test-config
   {:max_amount              10000

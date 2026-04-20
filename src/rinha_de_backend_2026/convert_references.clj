@@ -1,4 +1,4 @@
-(ns rinha-de-backend-2026-exemplo.convert-references
+(ns rinha-de-backend-2026.convert-references
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io])
   (:import [java.io DataOutputStream BufferedOutputStream FileOutputStream]))
