@@ -5,7 +5,7 @@ x-api: &api
     JAVA_TOOL_OPTIONS: >-
       -Xmx100m
       -Xms100m
-      -XX:MaxMetaspaceSize=40m
+      -XX:MaxMetaspaceSize=60m
       -Xss256k
       -XX:+UseSerialGC
       -XX:+DisableExplicitGC
