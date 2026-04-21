@@ -1,7 +1,7 @@
 x-api: &api
   image: zanfranceschi/rinha-de-backend-2026-zan-clojure:ann-ivf-202604212022
   environment:
-    NPROBE: 256
+    NPROBE: 2
     PORT: "3000"
     JAVA_TOOL_OPTIONS: >-
       -Xmx100m
