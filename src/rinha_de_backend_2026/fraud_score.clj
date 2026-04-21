@@ -2,6 +2,7 @@
   (:require
    [clojure.data.json :as json]
    [clojure.java.io :as io]
+   [envvar.core :refer [env]]
    [rinha-de-backend-2026.knn :as knn]
    [rinha-de-backend-2026.normalization :as norm])
   (:import [java.io DataInputStream BufferedInputStream]))
@@ -55,7 +56,7 @@
 (def ^:const k         5)
 (def ^:const threshold 0.6)
 (def ^:const nlist     256)  ; informational only; actual nlist comes from the file
-(def ^:const nprobe    32)
+(def nprobe (Integer/parseInt (or (@env :nprobe) "32")))
 
 ;; ---------------------------------------------------------------------------
 ;; Score
