@@ -1,18 +1,19 @@
 x-api: &api
-  image: rinha-de-backend-2026-zan-clojure:latest
+  image: zanfranceschi/rinha-de-backend-2026-zan-clojure:ann-ivf-202604211955
   environment:
     PORT: "3000"
     JAVA_TOOL_OPTIONS: >-
-      -Xmx80m
-      -Xms80m
-      -XX:MaxMetaspaceSize=50m
-      -XX:+UseSerialGC
+      -Xmx100m
+      -Xms100m
+      -XX:MaxMetaspaceSize=60m
       -Xss256k
+      -XX:+UseSerialGC
+      -XX:+DisableExplicitGC
   deploy:
     resources:
       limits:
-        cpus: "0.4"
-        memory: "165M"
+        cpus: "0.45"
+        memory: "170M"
 
 services:
   api1:
@@ -33,5 +34,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.2"
-          memory: "20M"
+          cpus: "0.1"
+          memory: "10M"
