@@ -5,6 +5,8 @@
 
 (def ^:private kmeans-iters 20)
 
+(def ^:private default-nlist 256)
+
 ;; ---------------------------------------------------------------------------
 ;; Primitive-array helpers
 ;; ---------------------------------------------------------------------------
@@ -120,6 +122,60 @@
         (vec (extract-medoids mtx centroids assignments))))))
 
 ;; ---------------------------------------------------------------------------
+;; IVF build + writer
+;; ---------------------------------------------------------------------------
+
+(defn- build-ivf
+  "Run k-means with k=nlist over all refs and bucket points into cells.
+   Returns {:centroids [[...]] :cells [{:vectors [[...]] :labels [...]}]}
+   in the shape consumed by knn/build-index."
+  [refs nlist iters]
+  (let [mtx          (to-matrix refs)
+        {:keys [centroids assignments]} (kmeans mtx nlist iters)
+        nrefs        (count refs)
+        cell-vecs    (object-array nlist)
+        cell-labs    (object-array nlist)]
+    (dotimes [i nlist]
+      (aset cell-vecs i (transient []))
+      (aset cell-labs i (transient [])))
+    (dotimes [p nrefs]
+      (let [c (aget ^ints assignments p)
+            r (nth refs p)]
+        (aset cell-vecs c (conj! (aget cell-vecs c) (:vector r)))
+        (aset cell-labs c (conj! (aget cell-labs c) (:label  r)))))
+    {:centroids (mapv #(vec (aget ^"[[D" centroids %)) (range nlist))
+     :cells     (mapv (fn [i]
+                        {:vectors (persistent! (aget cell-vecs i))
+                         :labels  (persistent! (aget cell-labs i))})
+                      (range nlist))}))
+
+(defn- write-ivf-bin
+  "Write an IVF-formatted binary. See spec section 'Binary format'."
+  [{:keys [centroids cells]} output-file]
+  (let [nlist (count centroids)
+        dim   (count (first centroids))
+        total (reduce + 0 (map (comp count :vectors) cells))]
+    (with-open [dos (DataOutputStream. (BufferedOutputStream. (FileOutputStream. output-file)))]
+      (.writeInt dos total)
+      (.writeInt dos dim)
+      (.writeInt dos nlist)
+      ;; centroids
+      (doseq [c centroids]
+        (doseq [v c]
+          (.writeDouble dos (double v))))
+      ;; cells
+      (doseq [{:keys [vectors labels]} cells]
+        (.writeInt dos (count vectors))
+        (dotimes [i (count vectors)]
+          (.writeByte dos (if (= "fraud" (nth labels i)) 1 0))
+          (doseq [v (nth vectors i)]
+            (.writeDouble dos (double v))))))
+    (println (format "Wrote IVF: total=%d dim=%d nlist=%d -> %s (%.1f MB)"
+                     total dim nlist
+                     (.getPath output-file)
+                     (/ (.length output-file) 1048576.0)))))
+
+;; ---------------------------------------------------------------------------
 ;; Binary writer
 ;; ---------------------------------------------------------------------------
 
@@ -143,34 +199,40 @@
 
 (defn -main
   "Convert references.json -> references.bin.
-   With no args: 1:1 copy.
-   With a max-size arg: compress via per-class k-means medoids, preserving
-   the class ratio found in the input."
+   With no args: build IVF index with default-nlist cells and write IVF format.
+   With a max-size arg: compress via per-class k-means medoids (legacy flat
+   format, preserved for the non-IVF workflow)."
   [& args]
   (let [input    (io/resource "references.json")
         output   (io/file "resources/references.bin")
         data     (json/read-str (slurp input) :key-fn keyword)
         total    (count data)
         max-size (some-> (first args) Integer/parseInt)]
-    (if (or (nil? max-size) (>= max-size total))
-      (write-bin data output)
-      (let [by-class (group-by :label data)
-            fraud-in (get by-class "fraud" [])
-            legit-in (get by-class "legit" [])
-            f-count  (count fraud-in)
-            l-count  (count legit-in)
-            fraud-k  (max 1 (Math/round (double (* max-size (/ f-count total)))))
-            legit-k  (max 0 (- max-size fraud-k))]
-        (println (format "Input:  %d total (fraud %d / legit %d)"
-                         total f-count l-count))
-        (println (format "Target: %d total (fraud %d / legit %d)"
-                         max-size fraud-k legit-k))
-        (let [fraud-out (compress-class fraud-in fraud-k kmeans-iters "fraud")
-              legit-out (compress-class legit-in legit-k kmeans-iters "legit")
-              final     (concat
-                         (map (fn [v] {:vector (vec v) :label "fraud"}) fraud-out)
-                         (map (fn [v] {:vector (vec v) :label "legit"}) legit-out))]
-          (write-bin final output))))))
+    (if (nil? max-size)
+      (do
+        (println (format "Building IVF index over %d refs, nlist=%d..."
+                         total default-nlist))
+        (let [ivf (build-ivf data default-nlist kmeans-iters)]
+          (write-ivf-bin ivf output)))
+      (if (>= max-size total)
+        (write-bin data output)
+        (let [by-class (group-by :label data)
+              fraud-in (get by-class "fraud" [])
+              legit-in (get by-class "legit" [])
+              f-count  (count fraud-in)
+              l-count  (count legit-in)
+              fraud-k  (max 1 (Math/round (double (* max-size (/ f-count total)))))
+              legit-k  (max 0 (- max-size fraud-k))]
+          (println (format "Input:  %d total (fraud %d / legit %d)"
+                           total f-count l-count))
+          (println (format "Target: %d total (fraud %d / legit %d)"
+                           max-size fraud-k legit-k))
+          (let [fraud-out (compress-class fraud-in fraud-k kmeans-iters "fraud")
+                legit-out (compress-class legit-in legit-k kmeans-iters "legit")
+                final     (concat
+                           (map (fn [v] {:vector (vec v) :label "fraud"}) fraud-out)
+                           (map (fn [v] {:vector (vec v) :label "legit"}) legit-out))]
+            (write-bin final output)))))))
 
 (defn analyze-duplicates
   "Report exact-duplicate statistics over references.json.
