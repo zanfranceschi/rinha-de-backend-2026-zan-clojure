@@ -1,5 +1,5 @@
 x-api: &api
-  image: zanfranceschi/rinha-de-backend-2026-zan-clojure:202604211703
+  image: anfranceschi/rinha-de-backend-2026-zan-clojure:202604211703
   environment:
     PORT: "3000"
     JAVA_TOOL_OPTIONS: >-
