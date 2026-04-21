@@ -2,7 +2,7 @@
 set -e
 
 IMAGE="zanfranceschi/rinha-de-backend-2026-zan-clojure"
-TAG=$(date +%Y%m%d%H%M)
+TAG="ann-ivf-$(date +%Y%m%d%H%M)"
 
 docker build \
     -t "$IMAGE:$TAG" \

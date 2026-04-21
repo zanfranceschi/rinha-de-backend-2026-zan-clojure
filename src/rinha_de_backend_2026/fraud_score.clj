@@ -67,24 +67,3 @@
   [request]
   (let [vector (norm/normalize request normalization-config mcc-risk)]
     (knn/classify vector search-index k threshold nprobe)))
-
-;; ---------------------------------------------------------------------------
-;; JIT warm-up. Runs synthetic classifications so HotSpot promotes the IVF
-;; hot paths (centroid rank, cell scan, PriorityQueue ops) before the server
-;; accepts real traffic. Blocks server startup via the ns-load chain.
-;; ---------------------------------------------------------------------------
-
-(let [;; pick any non-empty cell to read the dimension from
-      dim (let [cells (:cells search-index)
-                n     (alength cells)
-                probe (loop [i 0]
-                        (if (< i n)
-                          (let [m (:matrix (aget cells i))]
-                            (if (pos? (alength ^"[[D" m))
-                              (aget ^"[[D" m 0)
-                              (recur (inc i))))
-                          (throw (ex-info "all cells empty" {}))))]
-            (alength ^doubles probe))]
-  (dotimes [_ 2000]
-    (knn/classify (vec (repeatedly dim #(rand)))
-                  search-index k threshold nprobe)))
