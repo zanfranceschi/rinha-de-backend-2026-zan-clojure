@@ -55,7 +55,7 @@
 (def ^:const k         5)
 (def ^:const threshold 0.6)
 (def ^:const nlist     256)  ; informational only; actual nlist comes from the file
-(def ^:const nprobe    8)
+(def ^:const nprobe    32)
 
 ;; ---------------------------------------------------------------------------
 ;; Score
