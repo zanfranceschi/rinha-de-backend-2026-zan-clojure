@@ -176,63 +176,55 @@
                      (/ (.length output-file) 1048576.0)))))
 
 ;; ---------------------------------------------------------------------------
-;; Binary writer
-;; ---------------------------------------------------------------------------
-
-(defn- write-bin
-  [entries output-file]
-  (let [n   (count entries)
-        dim (count (:vector (first entries)))]
-    (with-open [dos (DataOutputStream. (BufferedOutputStream. (FileOutputStream. output-file)))]
-      (.writeInt dos n)
-      (.writeInt dos dim)
-      (doseq [entry entries]
-        (.writeByte dos (if (= "fraud" (:label entry)) 1 0))
-        (doseq [v (:vector entry)]
-          (.writeDouble dos (double v)))))
-    (println (format "Wrote %d entries (%dd) to %s (%.0f KB)"
-                     n dim (.getPath output-file) (/ (.length output-file) 1024.0)))))
-
-;; ---------------------------------------------------------------------------
 ;; Entry points
 ;; ---------------------------------------------------------------------------
 
+(defn- medoid-compress
+  "Per-class k-means medoid compression from total-size down to max-size,
+   preserving the class ratio. Returns a seq of {:vector :label} maps."
+  [data total max-size]
+  (let [by-class (group-by :label data)
+        fraud-in (get by-class "fraud" [])
+        legit-in (get by-class "legit" [])
+        f-count  (count fraud-in)
+        l-count  (count legit-in)
+        fraud-k  (max 1 (Math/round (double (* max-size (/ f-count total)))))
+        legit-k  (max 0 (- max-size fraud-k))]
+    (println (format "Input:         %d total (fraud %d / legit %d)"
+                     total f-count l-count))
+    (println (format "Medoid target: %d total (fraud %d / legit %d)"
+                     max-size fraud-k legit-k))
+    (let [fraud-out (compress-class fraud-in fraud-k kmeans-iters "fraud")
+          legit-out (compress-class legit-in legit-k kmeans-iters "legit")]
+      (concat
+       (map (fn [v] {:vector (vec v) :label "fraud"}) fraud-out)
+       (map (fn [v] {:vector (vec v) :label "legit"}) legit-out)))))
+
 (defn -main
-  "Convert references.json -> references.bin.
-   With no args: build IVF index with default-nlist cells and write IVF format.
-   With a max-size arg: compress via per-class k-means medoids (legacy flat
-   format, preserved for the non-IVF workflow)."
+  "Convert references.json -> references.bin (IVF format).
+   With no args: build IVF index over the full ref set (default-nlist cells).
+   With a max-size arg: compress via per-class k-means medoids first, then
+   build IVF. max-size must be >= 2*default-nlist for IVF to cluster
+   meaningfully."
   [& args]
   (let [input    (io/resource "references.json")
         output   (io/file "resources/references.bin")
         data     (json/read-str (slurp input) :key-fn keyword)
         total    (count data)
-        max-size (some-> (first args) Integer/parseInt)]
-    (if (nil? max-size)
-      (do
-        (println (format "Building IVF index over %d refs, nlist=%d..."
-                         total default-nlist))
-        (let [ivf (build-ivf data default-nlist kmeans-iters)]
-          (write-ivf-bin ivf output)))
-      (if (>= max-size total)
-        (write-bin data output)
-        (let [by-class (group-by :label data)
-              fraud-in (get by-class "fraud" [])
-              legit-in (get by-class "legit" [])
-              f-count  (count fraud-in)
-              l-count  (count legit-in)
-              fraud-k  (max 1 (Math/round (double (* max-size (/ f-count total)))))
-              legit-k  (max 0 (- max-size fraud-k))]
-          (println (format "Input:  %d total (fraud %d / legit %d)"
-                           total f-count l-count))
-          (println (format "Target: %d total (fraud %d / legit %d)"
-                           max-size fraud-k legit-k))
-          (let [fraud-out (compress-class fraud-in fraud-k kmeans-iters "fraud")
-                legit-out (compress-class legit-in legit-k kmeans-iters "legit")
-                final     (concat
-                           (map (fn [v] {:vector (vec v) :label "fraud"}) fraud-out)
-                           (map (fn [v] {:vector (vec v) :label "legit"}) legit-out))]
-            (write-bin final output)))))))
+        max-size (some-> (first args) Integer/parseInt)
+        min-size (* 2 default-nlist)
+        refs     (cond
+                   (nil? max-size)            data
+                   (>= max-size total)        data
+                   (< max-size min-size)      (throw (ex-info
+                                                      (format "max-size %d too small; need >= %d (2 * nlist=%d)"
+                                                              max-size min-size default-nlist)
+                                                      {:max-size max-size :min-size min-size :nlist default-nlist}))
+                   :else                      (medoid-compress data total max-size))]
+    (println (format "Building IVF index over %d refs, nlist=%d..."
+                     (count refs) default-nlist))
+    (let [ivf (build-ivf refs default-nlist kmeans-iters)]
+      (write-ivf-bin ivf output))))
 
 (defn analyze-duplicates
   "Report exact-duplicate statistics over references.json.
