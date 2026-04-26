@@ -1,8 +1,7 @@
 x-api: &api
   build:
     context: ..
-    dockerfile: containerization/Dockerfile
-  platform: linux/amd64
+    dockerfile: containerization/Dockerfile.arm64
   environment:
     PORT: "8080"
     DATA_DIR: "/data"
@@ -19,7 +18,6 @@ services:
     image: nginx:alpine
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-
     ports:
       - "9999:9999"
     depends_on:

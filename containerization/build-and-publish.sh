@@ -1,15 +1,19 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-IMAGE="zanfranceschi/rinha-de-backend-2026-zan-clojure"
-TAG="ann-ivf-$(date +%Y%m%d%H%M)"
+IMAGE="ghcr.io/zanfranceschi/rinha-de-backend-2026-janet-zan"
+TAG="${1:-latest}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
+echo "Building ${IMAGE}:${TAG} ..."
 docker build \
-    -t "$IMAGE:$TAG" \
-    -t "$IMAGE:latest" \
-    -t "rinha-de-backend-2026-zan-clojure:latest" \
-    -f Dockerfile ..
+  --platform linux/amd64 \
+  -f "$SCRIPT_DIR/Dockerfile" \
+  -t "${IMAGE}:${TAG}" \
+  "$PROJECT_DIR"
 
-docker push "$IMAGE:$TAG"
+echo "Pushing ${IMAGE}:${TAG} ..."
+docker push "${IMAGE}:${TAG}"
 
-echo "Published $IMAGE:$TAG"
+echo "Done."

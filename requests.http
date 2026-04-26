@@ -3,70 +3,28 @@
 ### Health check
 GET http://localhost:{{port}}/ready
 
-###
-
-### Fraud score
+### Legit transaction - low amount, known merchant, close to home
 POST http://localhost:{{port}}/fraud-score
 Content-Type: application/json
 
 {
-    "id": "tx-001",
-    "transaction": {
-        "amount": 50.0,
-        "installments": 1,
-        "requested_at": "2026-03-16T14:00:00Z"
-    },
-    "customer": {
-        "avg_amount": 60.0,
-        "tx_count_24h": 2,
-        "known_merchants": ["MERC-001"]
-    },
-    "merchant": {
-        "id": "MERC-001",
-        "mcc": "5411",
-        "avg_amount": 45.0
-    },
-    "terminal": {
-        "is_online": false,
-        "card_present": true,
-        "km_from_home": 2.0
-    },
-    "last_transaction": {
-        "timestamp": "2026-03-16T12:00:00Z",
-        "km_from_current": 1.5
-    }
+  "id": "tx-1329056812",
+  "transaction": { "amount": 41.12, "installments": 2, "requested_at": "2026-03-11T18:45:53Z" },
+  "customer": { "avg_amount": 82.24, "tx_count_24h": 3, "known_merchants": ["MERC-003", "MERC-016"] },
+  "merchant": { "id": "MERC-016", "mcc": "5411", "avg_amount": 60.25 },
+  "terminal": { "is_online": false, "card_present": true, "km_from_home": 29.23 },
+  "last_transaction": null
 }
 
-###
-
-### Fraud score (fraudulent)
+### Fraudulent transaction - high amount, far from home, unknown merchant
 POST http://localhost:{{port}}/fraud-score
 Content-Type: application/json
 
 {
-    "id": "tx-fraud",
-    "transaction": {
-        "amount": 9500.0,
-        "installments": 12,
-        "requested_at": "2026-03-14T03:00:00Z"
-    },
-    "customer": {
-        "avg_amount": 200.0,
-        "tx_count_24h": 15,
-        "known_merchants": ["MERC-001"]
-    },
-    "merchant": {
-        "id": "MERC-999",
-        "mcc": "7995",
-        "avg_amount": 8000.0
-    },
-    "terminal": {
-        "is_online": true,
-        "card_present": false,
-        "km_from_home": 500.0
-    },
-    "last_transaction": {
-        "timestamp": "2026-03-14T02:55:00Z",
-        "km_from_current": 300.0
-    }
+  "id": "tx-3330991687",
+  "transaction": { "amount": 9505.97, "installments": 10, "requested_at": "2026-03-14T05:15:12Z" },
+  "customer": { "avg_amount": 81.28, "tx_count_24h": 20, "known_merchants": ["MERC-008", "MERC-007", "MERC-005"] },
+  "merchant": { "id": "MERC-068", "mcc": "7802", "avg_amount": 54.86 },
+  "terminal": { "is_online": false, "card_present": true, "km_from_home": 952.27 },
+  "last_transaction": null
 }

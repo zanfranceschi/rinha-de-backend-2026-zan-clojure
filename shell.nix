@@ -5,9 +5,9 @@ let
 
   shell = pkgs.mkShell {
     packages = [
-        pkgs.leiningen
+        pkgs.clojure
         pkgs.openjdk25
-	    pkgs.jq
+        pkgs.jq
     ];
 
     shellHook = ''

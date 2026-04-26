@@ -1,4 +1,4 @@
-FROM clojure:temurin-25-tools-deps-alpine AS build
+FROM clojure:temurin-25-tools-deps AS build
 WORKDIR /app
 COPY deps.edn build.clj ./
 RUN clojure -P && clojure -P -T:build

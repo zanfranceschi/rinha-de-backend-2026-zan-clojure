@@ -1,48 +1,7 @@
-/target
-/classes
-/checkouts
-profiles.clj
-pom.xml
-pom.xml.asc
-*.jar
-*.class
-/.lein-*
-/.nrepl-port
-/.prepl-port
-.hgignore
-.hg/
-
-# Clojure/Leiningen
+data/
+target/
+classes/
 .cpcache/
-.rebel_readline_history
-.socket-repl-port
-.lsp/
-.calva/
+.nrepl-port
 .clj-kondo/.cache/
-.clj-kondo/imports/
-
-# IDE/Editor
-.idea/
-*.iml
-.metals/
-.bsp/
-
-# OS
-.DS_Store
-Thumbs.db
-*~
-
-# Environment
-.env
-
-# Logs
-*.log
-logs/
-
-# Test data
-test-scripts/data-generator/*.json
-!test-scripts/data-generator/preview-dataset.json
-test-scripts/k6/report.html
-test-scripts/k6/results.json
-resources/references.json
-resources/references.bin
+.lsp/

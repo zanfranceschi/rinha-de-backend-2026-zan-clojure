@@ -1,0 +1,48 @@
+[
+  {
+    "name": "java.io.FileInputStream",
+    "methods": [{"name": "<init>", "parameterTypes": ["java.lang.String"]}]
+  },
+  {
+    "name": "java.io.BufferedReader",
+    "methods": [{"name": "<init>", "parameterTypes": ["java.io.Reader"]}]
+  },
+  {
+    "name": "java.io.InputStreamReader",
+    "methods": [{"name": "<init>", "parameterTypes": ["java.io.InputStream", "java.lang.String"]}]
+  },
+  {
+    "name": "java.util.zip.GZIPInputStream",
+    "methods": [{"name": "<init>", "parameterTypes": ["java.io.InputStream"]}]
+  },
+  {
+    "name": "sun.nio.ch.SelectorImpl",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "sun.nio.ch.EPollSelectorImpl",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "methods": [{"name": "<init>", "parameterTypes": ["java.nio.channels.spi.SelectorProvider"]}]
+  },
+  {
+    "name": "sun.nio.ch.ServerSocketChannelImpl",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "sun.nio.ch.SocketChannelImpl",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "java.lang.Thread",
+    "methods": [{"name": "<init>", "parameterTypes": ["java.lang.Runnable", "java.lang.String"]}]
+  },
+  {
+    "name": "clojure.lang.Agent",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  }
+]
